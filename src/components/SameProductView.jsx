@@ -59,7 +59,7 @@ export default function SameProductView({ products, settings, promos, live }) {
             const pick = (inStock.length ? inStock : vs).reduce((a, b) => (!a || unitPrice(b, p.s, settings).price < unitPrice(a, p.s, settings).price ? b : a), null);
             if (!pick) return null;
             const up = unitPrice(pick, p.s, settings);
-            const order = orderTotal(p.s, [{ price: up.price, onSale: up.onSale, qty: 1, cat: p.c, kg: (p.g || 0) / 1000 }], settings, promos?.[p.s]);
+            const order = orderTotal(p.s, [{ price: up.price, onSale: up.onSale, qty: 1, cat: p.c, kg: (p.g || 0) / 1000, name: `${p.b || ''} ${p.n}`, sd: p.sd }], settings, promos?.[p.s]);
             return { p, v: pick, up, order, inStock: !!pick.st };
           })
           .filter(Boolean)

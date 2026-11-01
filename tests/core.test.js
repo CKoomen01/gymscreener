@@ -123,6 +123,18 @@ test('studentrabatt kommer i tillegg til kampanjepris', () => {
   assert.deepEqual(none.perks, []);
 });
 
+test('Studentkortet-rabatt: unntak og nedsatte varer', () => {
+  const s = { perks: { 'proteinfabrikken:studentkortet': true, 'bodylab:studentkortet': true } };
+  const pf = orderTotal('proteinfabrikken', [{ price: 300, onSale: true, qty: 1, cat: 'protein', kg: 1, name: 'Proteinfabrikken Whey' }, { price: 300, onSale: false, qty: 1, cat: 'barer', kg: 0.7, name: 'Barebells Protein Bar' }], s, null);
+  assert.equal(pf.discount.amount, 30); // bare whey (nedsatt er ok), Barebells er unntatt
+  const bl = orderTotal('bodylab', [{ price: 400, onSale: true, qty: 1, cat: 'protein', kg: 1, name: 'Whey' }], s, null);
+  assert.equal(bl.discount, null); // Bodylab: gjelder ikke nedsatte varer
+  // Den beste rabatten vinner, de kombineres ikke
+  const both = orderTotal('proteinfabrikken', [{ price: 1000, onSale: false, qty: 1, cat: 'protein', kg: 1, name: 'Whey' }], s, { codes: [{ code: 'SPAR200', type: 'amount', value: 200, minOrder: 999, scope: 'alle' }] });
+  assert.equal(both.discount.label, 'Kode SPAR200');
+  assert.equal(both.total, 800);
+});
+
 test('førstekjøp og medlemspris', () => {
   const t = orderTotal('sportylab', [{ price: 1000, onSale: false, qty: 1, cat: 'protein', kg: 1 }], { firstTime: { sportylab: true } }, null);
   assert.equal(t.discount.amount, 100);

@@ -31,7 +31,10 @@ function orderDiscounts(shopId, lines, settings, promos) {
   // Kontorabatter som IKKE kan kombineres, konkurrerer med kodene om å være den beste rabatten
   for (const p of shop.perks || []) {
     if (p.stack || !settings?.perks?.[`${shopId}:${p.id}`]) continue;
-    const base = p.excludesSale ? regSum : lines.reduce((s, l) => s + l.price * l.qty, 0);
+    // Unntak: merker i navnet (f.eks. Barebells) og outlet/kort dato
+    const excl = p.exclude ? new RegExp(p.exclude, 'i') : null;
+    const ok = lines.filter((l) => !(excl && excl.test(l.name || '')) && !(p.excludesOutlet && l.sd) && !(p.excludesSale && l.onSale));
+    const base = ok.reduce((s, l) => s + l.price * l.qty, 0);
     if (base > 0) out.push({ label: `${p.name} ${p.pct} %`, amount: (base * p.pct) / 100, source: p.desc });
   }
   if (fp && settings?.firstTime?.[shopId]) {
@@ -178,7 +181,7 @@ export function optimizeCart(needs, products, settings, promosByShop, opts = {})
     if (shops.size <= maxShops) {
       const orders = [...shops].map((s) => {
         const items = pick.filter((p) => p.shop === s);
-        const lines = items.map((p) => ({ price: p.price, onSale: p.onSale, qty: p.qty, cat: p.prod.c, kg: ((p.prod.g || 0) / 1000) }));
+        const lines = items.map((p) => ({ price: p.price, onSale: p.onSale, qty: p.qty, cat: p.prod.c, kg: (p.prod.g || 0) / 1000, name: `${p.prod.b || ''} ${p.prod.n}`, sd: p.prod.sd }));
         return { ...orderTotal(s, lines, settings, promosByShop?.[s]), items };
       });
       const total = orders.reduce((s, o) => s + o.total, 0);

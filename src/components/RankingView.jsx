@@ -95,7 +95,7 @@ export default function RankingView({ products, settings, promos, live }) {
               </button>
             )}
           </div>
-          <p className="muted small">Tomt felt gir ren varepris per enhet. Fyller du inn mengde, regnes antall pakker, rabattkoder, førstekjøpsrabatt og frakt (med gratisgrensen) inn.</p>
+          <p className="muted small">Tomt felt gir pris per enhet for én pakke, med rabattene du har krysset av for, men uten frakt. Fyller du inn mengde, regnes antall pakker, rabattkoder, førstekjøpsrabatt og frakt (med gratisgrensen) inn.</p>
         </div>
         <div className="field">
           <label>Smak</label>

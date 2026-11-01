@@ -1,5 +1,5 @@
 // Rangering per kategori. Rent funksjonelt, slik at det kan testes uten nettleser.
-import { unitPrice, orderTotal, amountPerPackage, packagesFor, perkFactor } from './pricing.js';
+import { unitPrice, orderTotal, amountPerPackage, packagesFor } from './pricing.js';
 
 export function flavorOk(v, f) {
   if (f.flavor) return v.f && v.f.toLowerCase() === f.flavor.toLowerCase();
@@ -40,13 +40,14 @@ export function rankRows(products, f, settings, promos) {
     }
     const per = amountPerPackage(prod, f.unit);
     const qty = f.qty > 0 ? packagesFor(prod, f.unit, f.qty) : 1;
-    const line = { price: best.up.price, onSale: best.up.onSale, qty: qty || 1, cat: prod.c, kg: (prod.g || 0) / 1000 };
+    const line = { price: best.up.price, onSale: best.up.onSale, qty: qty || 1, cat: prod.c, kg: (prod.g || 0) / 1000, name: `${prod.b || ''} ${prod.n}`, sd: prod.sd };
     const order = orderTotal(prod.s, [line], settings, promos?.[prod.s]);
     let metric = null;
     if (per) {
       // Ukjent frakt: regn uten frakt, men kortet viser tydelig «+ frakt (ukjent)»
       if (f.qty > 0 && qty) metric = order.total / (qty * per);
-      else metric = (best.up.price * perkFactor(prod.s, settings)) / per;
+      // Uten mengde: én pakke med rabattene du har krysset av for, uten frakt
+      else metric = (order.total - (order.shipping || 0)) / per;
       if (f.unit === 'gProtein' && metric !== null) metric *= 100;
     }
     rows.push({ prod, v: best.v, up: best.up, matching: vs, metric, per, qty, order });
