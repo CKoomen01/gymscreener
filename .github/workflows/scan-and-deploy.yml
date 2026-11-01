@@ -1,0 +1,59 @@
+name: Skann priser og publiser
+
+on:
+  schedule:
+    # Hver 4. time (UTC). GitHub kan forsinke planlagte kjøringer noen minutter.
+    - cron: '17 */4 * * *'
+  workflow_dispatch:
+    inputs:
+      skip_scan:
+        description: 'Hopp over skann (bare publiser kode med forrige data)'
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PREV_DATA_URL: https://ckoomen01.github.io/gymscreener/data/products.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Hent forrige data
+        run: |
+          mkdir -p public/data
+          curl -fsSL "$PREV_DATA_URL" -o public/data/products.json || echo "Ingen tidligere data"
+      - name: Full skann av alle butikker
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !inputs.skip_scan) || (github.event_name == 'push' && hashFiles('public/data/products.json') == '')
+        run: node scripts/scan.mjs
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

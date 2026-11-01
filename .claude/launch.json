@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "gymscreener",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "5179", "--strictPort"],
+      "port": 5179,
+      "url": "http://localhost:5179"
+    }
+  ]
+}
