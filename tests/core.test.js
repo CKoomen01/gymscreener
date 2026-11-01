@@ -72,6 +72,9 @@ test('promokoder fra butikkens side', () => {
   assert.equal(p.codes[0].value, 200);
   assert.equal(p.codes[0].minOrder, 999);
   assert.equal(p.freeShippingBanner, 800);
+  const mixed = parsePromos('Grab and Go opptil 40% · Swedish Supplements opptil 40% 💥200 kr rabatt ved kjøp over 999 kr💥 Din kode: SPAR200');
+  assert.equal(mixed.codes[0].type, 'amount');
+  assert.equal(mixed.codes[0].value, 200);
   const page = parsePromos('RABATTKODE Få 200kr i rabatt når du handler for 999kr Bruk kode: SPAR200 i kassen. Koden er aktiv f.o.m 29/10-26 t.o.m 1/11-99 Vilkår: Koden kan ikke brukes på gavekort, drikkekategorien. Gjelder også på allerede nedsatte produkter');
   assert.equal(page.codes[0].minOrder, 999);
   assert.equal(page.codes[0].value, 200);

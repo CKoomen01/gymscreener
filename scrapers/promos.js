@@ -20,9 +20,23 @@ export function parsePromos(text) {
   while ((m = re.exec(text))) {
     const code = m[1].toUpperCase();
     if (STOP.has(code) || !/[A-Z]/.test(code) || code !== m[1]) continue; // koder er skrevet med store bokstaver
-    const ctx = text.slice(Math.max(0, m.index - 160), m.index + m[0].length + 120).replace(/\s+/g, ' ');
-    const pct = ctx.match(/(\d{1,2})\s?%/);
-    const amt = ctx.match(/(\d{2,4})\s?(?:kr|,-)\s*(?:i\s+)?(?:rabatt|avslag|off)/i) || ctx.match(/(?:spar|rabatt p(?:å|a))\s*(\d{2,4})\s?kr/i);
+    const start = Math.max(0, m.index - 160);
+    const ctx = text.slice(start, m.index + m[0].length + 120).replace(/\s+/g, ' ');
+    // Bannere står tett: bruk tallet som står nærmest koden
+    const codeAt = ctx.indexOf(m[1]);
+    // Tekst etter koden hører ofte til neste banner, så avstand etter koden teller dobbelt
+    const dist = (x) => (x.index < codeAt ? codeAt - x.index : 2 * (x.index - codeAt));
+    const nearest = (re) => {
+      let best = null;
+      for (const x of ctx.matchAll(re)) if (!best || dist(x) < dist(best)) best = x;
+      return best;
+    };
+    let pct = nearest(/(\d{1,2})\s?%/g);
+    let amt = nearest(/(\d{2,4})\s?(?:kr|,-)\s*(?:i\s+)?(?:rabatt|avslag|off)/gi) || nearest(/(?:spar|rabatt p(?:å|a))\s*(\d{2,4})\s?kr/gi);
+    if (pct && amt) {
+      if (dist(pct) < dist(amt)) amt = null;
+      else pct = null;
+    }
     const min = ctx.match(/(?:ved kj(?:ø|o)p|kj(?:ø|o)p|handler|ordre|bestilling)\s*(?:for\s*)?(?:over|fra|p(?:å|a))?\s*(?:minst\s*)?(\d{3,5})\s?(?:kr|,-)/i);
     const scope = (SCOPES.find(([, r]) => r.test(ctx)) || ['alle'])[0];
     // Vilkår står ofte lenger ned: gyldighet, om nedsatte varer er med, unntak
@@ -58,8 +72,8 @@ export function parsePromos(text) {
 }
 
 export async function scanPromos(shop, ctx) {
-  // Forsiden pluss butikkens egen rabattkode-side der den finnes
-  const pages = ['/', ...(shop.promoPages || [])];
+  // Butikkens egen rabattkode-side først (den har fullstendige vilkår), så forsiden
+  const pages = [...(shop.promoPages || []), '/'];
   const texts = [];
   for (const p of pages) {
     const html = await ctx.text(shop.url + p);
