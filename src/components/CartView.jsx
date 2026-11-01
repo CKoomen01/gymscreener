@@ -153,6 +153,12 @@ export default function CartView({ products, settings, promos, live }) {
                       <dd className="good">−{kr(o.discount.amount)}</dd>
                     </>
                   )}
+                  {o.perks?.map((p) => (
+                    <React.Fragment key={p.label}>
+                      <dt title={p.source}>{p.label}</dt>
+                      <dd className="good">−{kr(p.amount)}</dd>
+                    </React.Fragment>
+                  ))}
                   <dt>Frakt</dt>
                   <dd>{o.shippingUnknown ? 'ukjent' : o.shipping === 0 ? 'gratis' : kr(o.shipping)}</dd>
                   {o.points > 0 && (

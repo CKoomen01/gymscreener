@@ -110,6 +110,19 @@ test('ordretotal med frakt og kode', () => {
   assert.equal(ef.shipping, 69);
 });
 
+test('studentrabatt kommer i tillegg til kampanjepris', () => {
+  const t = orderTotal('tights', [{ price: 1000, onSale: true, qty: 1, cat: 'protein', kg: 1 }], { perks: { 'tights:student': true } }, null);
+  assert.equal(t.perks[0].amount, 50);
+  // Tights: gratisfraktgrensen gjelder beløpet etter rabatter, og 950 er under 999
+  assert.equal(t.missingForFree, 49);
+  assert.equal(t.total, 950);
+  const prod = { k: 'tights:1', s: 'tights', n: 'Whey 1 kg', c: 'protein', sc: 'whey', g: 1000, pp: 80, sd: 0, v: [{ id: '1', f: null, fg: [], p: 400, st: 1 }] };
+  const rows = rankRows([prod], { cat: 'protein', unit: 'kg' }, { perks: { 'tights:student': true } }, {});
+  assert.equal(rows[0].metric, 380);
+  const none = orderTotal('tights', [{ price: 1000, onSale: true, qty: 1, cat: 'protein', kg: 1 }], {}, null);
+  assert.deepEqual(none.perks, []);
+});
+
 test('førstekjøp og medlemspris', () => {
   const t = orderTotal('sportylab', [{ price: 1000, onSale: false, qty: 1, cat: 'protein', kg: 1 }], { firstTime: { sportylab: true } }, null);
   assert.equal(t.discount.amount, 100);

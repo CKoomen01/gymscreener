@@ -6,6 +6,7 @@ export const DEFAULT_SETTINGS = {
   onboarded: false,
   members: {}, // { shopId: true } = jeg er (eller blir) medlem
   firstTime: {}, // { shopId: true } = jeg har ikke handlet her før
+  perks: {}, // { 'shopId:perkId': true } = f.eks. studentrabatt registrert på kontoen
   points: false, // regn bonuspoeng som rabatt
   codes: true, // bruk rabattkoder fra butikkenes egne sider
   delivery: 'cheapest',

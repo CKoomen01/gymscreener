@@ -109,8 +109,25 @@ export const SHOPS = {
     platform: 'woo',
     shipsFrom: 'Norge',
     shipping: { free: 999, cheapest: null, home: null, cheapestLabel: 'PostNord/Instabox', homeLabel: 'Hjemlevering' },
-    membership: null,
+    membership: {
+      name: 'tights club',
+      free: true,
+      pointsPct: 0,
+      desc: 'Gratis. Medlemspris på merkede produkter (vises bare når du er logget inn, så den kan ikke hentes automatisk).',
+      url: 'https://www.tights.no/kampanje/tightsclub/',
+    },
     firstPurchase: null,
+    // Ekstra rabatter knyttet til kontoen din. stack: kommer i tillegg til kampanjepriser og koder.
+    perks: [
+      {
+        id: 'student',
+        name: 'Studentrabatt',
+        pct: 5,
+        stack: true,
+        desc: '5 % ekstra studentrabatt på alle ordrer (aktiveres under «Min konto»).',
+        url: 'https://www.tights.no/studentrabatt/',
+      },
+    ],
     combineCodes: false,
     termsUrl: 'https://www.tights.no/kundeservice/frakt-og-leveranse/',
   },

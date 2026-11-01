@@ -28,6 +28,12 @@ function orderDiscounts(shopId, lines, settings, promos) {
   const regular = lines.filter((l) => !l.onSale);
   const regSum = regular.reduce((s, l) => s + l.price * l.qty, 0);
   const fp = shop.firstPurchase;
+  // Kontorabatter som IKKE kan kombineres, konkurrerer med kodene om å være den beste rabatten
+  for (const p of shop.perks || []) {
+    if (p.stack || !settings?.perks?.[`${shopId}:${p.id}`]) continue;
+    const base = p.excludesSale ? regSum : lines.reduce((s, l) => s + l.price * l.qty, 0);
+    if (base > 0) out.push({ label: `${p.name} ${p.pct} %`, amount: (base * p.pct) / 100, source: p.desc });
+  }
   if (fp && settings?.firstTime?.[shopId]) {
     const base = fp.excludesSale ? regSum : lines.reduce((s, l) => s + l.price * l.qty, 0);
     if (base > 0) out.push({ label: `Førstekjøp ${fp.pct} %`, amount: (base * fp.pct) / 100, source: fp.desc });
@@ -49,13 +55,26 @@ function orderDiscounts(shopId, lines, settings, promos) {
   return out;
 }
 
+// Faktor for rabatter som alltid gjelder i en butikk (f.eks. 5 % studentrabatt -> 0,95)
+export function perkFactor(shopId, settings) {
+  return (SHOPS[shopId]?.perks || []).filter((p) => p.stack && settings?.perks?.[`${shopId}:${p.id}`]).reduce((f, p) => f * (1 - p.pct / 100), 1);
+}
+
 // lines: [{price, onSale, qty, cat, kg}]
 export function orderTotal(shopId, lines, settings, promos) {
   const shop = SHOPS[shopId];
   const subtotal = lines.reduce((s, l) => s + l.price * l.qty, 0);
   const discounts = orderDiscounts(shopId, lines, settings, promos);
   const best = discounts[0] || null;
-  const afterDiscount = subtotal - (best?.amount || 0);
+  // Ekstra rabatter du har krysset av for (f.eks. studentrabatt) som kommer i tillegg til alt annet
+  const stacked = (shop.perks || [])
+    .filter((p) => p.stack && settings?.perks?.[`${shopId}:${p.id}`])
+    .map((p) => ({ label: `${p.name} ${p.pct} %`, pct: p.pct, source: p.desc }));
+  let afterDiscount = subtotal - (best?.amount || 0);
+  for (const p of stacked) {
+    p.amount = (afterDiscount * p.pct) / 100;
+    afterDiscount -= p.amount;
+  }
   const kg = lines.reduce((s, l) => s + (l.kg || 0) * l.qty, 0);
   const override = settings?.shipOverride?.[shopId];
   // Fraktgrense fra butikkens banner (f.eks. kampanje med lavere grense) brukes når den er lavere
@@ -74,6 +93,7 @@ export function orderTotal(shopId, lines, settings, promos) {
     shop: shopId,
     subtotal,
     discount: best,
+    perks: stacked,
     otherDiscounts: discounts.slice(1),
     shipping,
     shippingUnknown: shipping === null,

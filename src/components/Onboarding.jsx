@@ -7,6 +7,7 @@ export default function Onboarding({ settings, onSave, onClose }) {
   const toggle = (field, id) => setS((x) => ({ ...x, [field]: { ...x[field], [id]: !x[field]?.[id] } }));
   const memberShops = SHOP_IDS.filter((id) => SHOPS[id].membership);
   const firstShops = SHOP_IDS.filter((id) => SHOPS[id].firstPurchase);
+  const perkShops = SHOP_IDS.filter((id) => SHOPS[id].perks?.length);
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="setup-title">
@@ -34,6 +35,35 @@ export default function Onboarding({ settings, onSave, onClose }) {
             <input type="checkbox" checked={!!s.points} onChange={() => setS((x) => ({ ...x, points: !x.points }))} />
             <span>Regn bonuspoeng som rabatt (ca. 2–2,5 % hos Club Gymgrossisten, Sportylab og XXL). Av som standard, fordi poengene kommer som bonussjekk senere.</span>
           </label>
+        </section>
+
+        <section>
+          <h3>Andre rabatter du har (student o.l.)</h3>
+          <p className="muted small">Rabatter knyttet til kontoen din hos butikken. Kryss av for de du har registrert.</p>
+          <ul className="checklist">
+            {perkShops.flatMap((id) =>
+              SHOPS[id].perks.map((p) => {
+                const key = `${id}:${p.id}`;
+                return (
+                  <li key={key}>
+                    <label>
+                      <input type="checkbox" checked={!!s.perks?.[key]} onChange={() => toggle('perks', key)} />
+                      <span>
+                        <strong>
+                          {p.name} hos {SHOPS[id].name}
+                        </strong>
+                        <span className="muted small">
+                          {' '}
+                          · {p.desc}
+                          {p.stack ? ' Kommer i tillegg til kampanjepriser.' : ''}
+                        </span>
+                      </span>
+                    </label>
+                  </li>
+                );
+              })
+            )}
+          </ul>
         </section>
 
         <section>

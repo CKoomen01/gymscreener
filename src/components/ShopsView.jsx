@@ -22,6 +22,12 @@ export default function ShopsView({ data, settings, setSettings, openSetup }) {
           <br />
           Førstekjøpsrabatt: {SHOP_IDS.filter((id) => settings.firstTime?.[id]).map((id) => SHOPS[id].name).join(', ') || 'ingen'}.
           <br />
+          Andre rabatter: {Object.keys(settings.perks || {}).filter((k) => settings.perks[k]).map((k) => {
+            const [id, pid] = k.split(':');
+            const p = SHOPS[id]?.perks?.find((x) => x.id === pid);
+            return p ? `${p.name} hos ${SHOPS[id].name}` : null;
+          }).filter(Boolean).join(', ') || 'ingen'}.
+          <br />
           Bonuspoeng som rabatt: {settings.points ? 'ja' : 'nei'} · Rabattkoder: {settings.codes !== false ? 'ja' : 'nei'} · Levering: {settings.delivery === 'home' ? 'hjemlevering' : 'billigste'}
         </p>
         <button className="primary" onClick={openSetup}>
@@ -68,6 +74,18 @@ export default function ShopsView({ data, settings, setSettings, openSetup }) {
                 <dd>{s.membership ? `${s.membership.name}: ${s.membership.desc}` : 'Ingen'}</dd>
                 <dt>Førstekjøp</dt>
                 <dd>{s.firstPurchase ? s.firstPurchase.desc : 'Ingen'}</dd>
+                {s.perks?.length > 0 && (
+                  <>
+                    <dt>Andre rabatter</dt>
+                    <dd>
+                      {s.perks.map((p) => (
+                        <div key={p.id}>
+                          {p.name}: {p.desc} {settings.perks?.[`${id}:${p.id}`] ? <strong className="good">(du har denne)</strong> : null}
+                        </div>
+                      ))}
+                    </dd>
+                  </>
+                )}
                 <dt>Koder på siden nå</dt>
                 <dd>
                   {promos?.codes?.length

@@ -23,6 +23,12 @@ export function Breakdown({ row, qtyMode }) {
           <dd className="good">−{kr(order.discount.amount)}</dd>
         </>
       )}
+      {order.perks?.map((p) => (
+        <React.Fragment key={p.label}>
+          <dt title={p.source}>{p.label}</dt>
+          <dd className="good">−{kr(p.amount)}</dd>
+        </React.Fragment>
+      ))}
       <dt>Frakt</dt>
       <dd>{order.shippingUnknown ? 'ukjent (vises i kassen)' : order.shipping === 0 ? 'gratis' : kr(order.shipping)}</dd>
       {order.points > 0 && (
@@ -89,6 +95,11 @@ export default function ProductCard({ rank, row, unit, qtyMode, live }) {
           {up.kind === 'kampanje' && <span className="badge sale">Kampanje</span>}
           {up.kind === 'medlemspris' && <span className="badge member">Medlemspris</span>}
           {order.discount && <span className="badge code">{order.discount.label}</span>}
+          {order.perks?.map((p) => (
+            <span key={p.label} className="badge code">
+              {p.label}
+            </span>
+          ))}
           {prod.sd ? <span className="badge short">Kort dato{v.x ? ` (${v.x.slice(0, 10)})` : ''}</span> : null}
           {prod.live && !prod.liveFailed && <span className="badge live">Live {clock(prod.live)}</span>}
           {prod.liveFailed && <span className="badge warn">Live-sjekk feilet, viser siste skann</span>}
