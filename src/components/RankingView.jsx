@@ -25,6 +25,7 @@ const DEFAULT = { cat: 'protein', subs: [], groups: [], flavor: '', shops: [], h
 export default function RankingView({ products, settings, promos, live }) {
   const [f, setF] = useStored('filters-v1', DEFAULT);
   const [shown, setShown] = useState(40);
+  const [openFilters, setOpenFilters] = useState(false); // bare på mobil
   const set = (patch) => setF((x) => ({ ...x, ...patch }));
   const toggleIn = (key, val) => setF((x) => ({ ...x, [key]: x[key].includes(val) ? x[key].filter((y) => y !== val) : [...x[key], val] }));
 
@@ -60,21 +61,25 @@ export default function RankingView({ products, settings, promos, live }) {
           </div>
         </div>
         <div className="field">
-          <label>Type</label>
-          <div className="chips">
-            {Object.entries(SUBCATEGORIES[f.cat]).map(([id, l]) => (
-              <button key={id} className={`chip small ${f.subs.includes(id) ? 'on' : ''}`} onClick={() => toggleIn('subs', id)}>
-                {l}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="field">
           <label>Sorter etter</label>
           <div className="seg">
             {UNITS[f.cat].map((u) => (
               <button key={u} className={unit === u ? 'on' : ''} onClick={() => set({ unit: u })}>
                 {UNIT_LABEL[u]}
+              </button>
+            ))}
+          </div>
+        </div>
+        <button className="ghost wide filter-toggle" onClick={() => setOpenFilters((o) => !o)} aria-expanded={openFilters}>
+          {openFilters ? 'Skjul filtre' : `Flere filtre (smak, mengde, butikker)${f.groups.length || f.flavor || f.qty || f.shops.length || f.subs.length ? ' · aktive' : ''}`}
+        </button>
+        <div className={`filter-body ${openFilters ? 'open' : ''}`}>
+        <div className="field">
+          <label>Type</label>
+          <div className="chips">
+            {Object.entries(SUBCATEGORIES[f.cat]).map(([id, l]) => (
+              <button key={id} className={`chip small ${f.subs.includes(id) ? 'on' : ''}`} onClick={() => toggleIn('subs', id)}>
+                {l}
               </button>
             ))}
           </div>
@@ -134,6 +139,7 @@ export default function RankingView({ products, settings, promos, live }) {
           <button className="link" onClick={() => setF({ ...DEFAULT, cat: f.cat, unit: defaultUnit(f.cat) })}>
             Nullstill filtre
           </button>
+        </div>
         </div>
       </aside>
 

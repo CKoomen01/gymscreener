@@ -194,8 +194,13 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; font-
 
 .foot { color: var(--muted); font-size: 12.5px; text-align: center; margin-top: 28px; }
 
+.filter-toggle { display: none; margin: 0 0 10px; }
+a.buy { white-space: nowrap; }
+
 @media (max-width: 860px) {
   .ranking { grid-template-columns: 1fr; }
+  .filter-toggle { display: block; }
+  .filter-body:not(.open) { display: none; }
   .filters { position: static; max-height: none; }
   .card { grid-template-columns: 26px minmax(0, 1fr); }
   .card .price { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center; text-align: left; border-top: 1px solid var(--line); padding-top: 8px; }
