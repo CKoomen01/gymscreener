@@ -81,6 +81,25 @@ export default function ShopsView({ data, settings, setSettings, openSetup }) {
                     : 'Ingen funnet'}
                 </dd>
               </dl>
+              {!s.shipping.tiers && (s.shipping.cheapest === null || s.shipping.cheapest === undefined) && (
+                <div className="field">
+                  <label htmlFor={`ship-${id}`}>Fraktpris jeg har sett i kassen (under gratisgrensen)</label>
+                  <div className="qty">
+                    <input
+                      id={`ship-${id}`}
+                      inputMode="numeric"
+                      placeholder="ukjent"
+                      defaultValue={settings.shipOverride?.[id]?.cheapest ?? ''}
+                      onBlur={(e) => {
+                        const v = e.target.value.trim() === '' ? undefined : Number(e.target.value.replace(',', '.'));
+                        setSettings((x) => ({ ...x, shipOverride: { ...(x.shipOverride || {}), [id]: v === undefined || Number.isNaN(v) ? undefined : { cheapest: v, home: v } } }));
+                      }}
+                    />
+                    <span>kr</span>
+                  </div>
+                  <p className="muted small">Butikken viser ikke fraktprisen før i kassen. Fyller du inn prisen, regnes den med i mengdemodus og handlekurven.</p>
+                </div>
+              )}
               <a className="small" href={s.termsUrl} target="_blank" rel="noopener noreferrer">
                 Butikkens fraktvilkår ↗
               </a>

@@ -97,6 +97,9 @@ test('ordretotal med frakt og kode', () => {
   // Koden gjelder ikke nedsatte varer
   const sale = orderTotal('proteinfabrikken', [{ price: 500, onSale: true, qty: 2, cat: 'protein', kg: 1 }], {}, promos);
   assert.equal(sale.discount, null);
+  const ov = orderTotal('tights', [{ price: 500, onSale: false, qty: 1, cat: 'protein', kg: 1 }], { shipOverride: { tights: { cheapest: 49, home: 49 } } }, null);
+  assert.equal(ov.shipping, 49);
+  assert.equal(ov.total, 549);
   const hc = orderTotal('hcdealer', [{ price: 300, onSale: false, qty: 1, cat: 'kreatin', kg: 0.5 }], {}, null);
   assert.equal(hc.shipping, 59);
   assert.equal(hc.missingForFree, 200);
