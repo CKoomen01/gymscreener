@@ -93,7 +93,12 @@ export function parseCount(text) {
   return null;
 }
 
-const EXCLUDE = /shaker|flaske|bottle|t-?skjorte|hoodie|\btights\b|shorts|singlet|\bbelte\b|straps|hansker|\bmatte\b|pannekake|pancake|pudding(?!.*protein ?pulver)|pean(ø|o)ttsm(ø|o)r|n(ø|o)ttesm(ø|o)r|\bspread\b|sirup|syrup|\bsaus\b|\bsauce\b|m(ü|u)sli|granola|\bchips\b|popcorn|nudler|\bpasta\b|\bgrøt\b|havregryn|frokostblanding|gavekort|kokebok|\bbok\b|sokker|\bkopp\b|\bboks\b|oppbevaring|pillbox|pilledosett|\bvekt\b(?!.*gainer)|rabattkort|bake ?mix|\bbaking\b|\bmel\b|peanut butter|\bkaffe\b(?!.*(protein|kreatin))|\bte\b|kombucha|smoothie|\bjuice\b|kokosvann|mineralvann|energidrikk(?!.*protein)|\bnocco\b|\bmonster\b|red bull|\bcelsius\b|powerade|sportsdrikk/i;
+const EXCLUDE = /shaker|flaske|bottle|t-?skjorte|hoodie|\btights\b|shorts|singlet|\bbelte\b|straps|hansker|\bmatte\b|pannekake|pancake|pudding(?!.*protein ?pulver)|pean(ø|o)ttsm(ø|o)r|n(ø|o)ttesm(ø|o)r|\bspread\b|sirup|syrup|\bsaus\b|\bsauce\b|m(ü|u)sli|granola|\bchips\b|popcorn|nudler|\bpasta\b|\bgrøt\b|havregryn|frokostblanding|gavekort|kokebok|\bbok\b|sokker|\bkopp\b|\bboks\b|oppbevaring|pillbox|pilledosett|\bvekt\b(?!.*gainer)|rabattkort|bake ?mix|\bbaking\b|\bmel\b|peanut butter|\bkaffe\b(?!.*(protein|kreatin))|\bte\b|kombucha|smoothie|\bjuice\b|kokosvann|mineralvann|energidrikk(?!.*protein)|\bnocco\b|\bmonster\b|red bull|\bcelsius\b|powerade|sportsdrikk|smart ?shake|blender ?bottle|\bchalk\b|kokosmelk|coconut milk|havremelk|oat milk|\blotion\b|\bserum\b|sjampo|shampoo|tannkrem|deodorant|\bsåpe\b|bodylotion|freeze-?dried|tørket frukt|oatmeal|porridge|\bgrøt\b|pastill/i;
+
+// Barer må ha protein i navnet, kategorien eller være fra et kjent proteinbar-merke
+const PROTEIN_BAR_BRAND = /barebells|\bquest\b|grenade|warrior|propud|njie|fulfil|misfits|nupo|big 100|core bar|\bpf\b|wispy|oh yeah|\bone bar\b|carb killa|swebar|smartsupps|nutramino|star nutrition|bodylab|chiefs|built bar|vitaprana/;
+// Sterke vitamin-/mineralord i navnet går foran butikkens kategori (f.eks. magnesium under «Aminosyrer»)
+const VITAMIN_WORD = /magnesium|vitamin|omega|\bsink\b|zink|zinc|\bjern\b|iron\b|kalsium|calcium|\bd3\b|b12|multivit|elektrolytt|electrolyte|\bselen|selenium|krom\b|chromium|jod\b|iodine|kalium|potassium|folat|folin/;
 
 function lower(...s) {
   return s.filter(Boolean).join(' ').toLowerCase();
@@ -104,15 +109,19 @@ export function classify(raw) {
   const cat = lower(raw.shopCategory);
   const all = `${name} ${cat}`;
   if (EXCLUDE.test(name)) return null;
-  const isBar = /\b(protein)?bar(er|s)?\b|proteinbar|protein bar|wafer|bites\b|crisp(?!y)|cookie\b(?!.*pulver)/.test(name) || (/barer|proteinbar/.test(cat) && !/pulver/.test(name));
+  const barWord = /\b(protein)?bar(er|s)?\b|proteinbar|protein bar|wafer|bites\b|crisp(?!y)|crunch|cookie\b(?!.*pulver)/.test(name) || (/barer|proteinbar/.test(cat) && !/pulver/.test(name));
+  const isBar = barWord && (/protein|whey/.test(name) || /protein ?bar|proteinbarer/.test(cat) || PROTEIN_BAR_BRAND.test(`${name} ${lower(raw.brand)}`));
+  if (barWord && !isBar && !/kreatin|creatine|vitamin/.test(name)) return null; // vanlige snacks/energibarer uten protein
   const vol = parseVolume(raw.name);
   // Pulver til shake ("500 g, proteinmilkshake") er ikke ferdigdrikke: drikker har volum (ml/l)
   const powderLike = parseWeight(raw.name) >= 200 && !vol;
-  const isDrink = !powderLike && (/proteindrikk|protein ?drink|protein ?shake(?!.*pulver)|ready ?to ?drink|\brtd\b|proteinvann|protein water|clear protein soda|milkshake(?!.*pulver)|proteinmelk/.test(name) || (vol && vol < 2000 && /protein|shake|milk/.test(name) && !/pulver|powder/.test(name)) || /proteindrikk/.test(cat));
+  const isDrink = !powderLike && (/proteindrikk|protein ?drink|protein ?shake(?!.*pulver)|ready ?to ?drink|\brtd\b|proteinvann|protein water|clear protein soda|milkshake(?!.*pulver)|proteinmelk/.test(name) || (vol && vol < 2000 && /protein|whey|shake/.test(name) && !/pulver|powder/.test(name)) || /proteindrikk/.test(cat));
   if (isBar && !isDrink) return { cat: 'barer', sub: 'protein' };
   if (isDrink) return { cat: 'drikke', sub: 'protein' };
+  // Merker som bare lager proteinbarer, der navnet ofte bare er smaken ("Barebells Salty Peanut")
+  if (/barebells|swebar|fulfil|misfits|built bar/.test(name) && !vol && !/pulver|powder|spread/.test(name)) return { cat: 'barer', sub: 'protein' };
   if (/gainer|mass(?!asje)|weight ?gain|vekt(ø|o)kning/.test(all) && !/kreatin|creatine/.test(name)) return { cat: 'gainer', sub: 'gainer' };
-  if (/pre[\s-]?workout|\bpwo\b|\bpre\b|\bpump\b|\bc4\b|n\.?o\.?[\s-]?xplode|preworkout/.test(name) || (/pwo|pre-?workout/.test(cat) && !/kreatin|creatine|bcaa|eaa/.test(name))) {
+  if (/pre[\s-]?workout|\bpwo\b|\bpre\b|\bpump\b|\bc4\b|n\.?o\.?[\s-]?xplode|preworkout/.test(name) || (/pwo|pre-?workout/.test(cat) && !/kreatin|creatine|bcaa|eaa|protein|whey|kollagen|collagen/.test(name))) {
     const sub = /koffeinfri|caffeine[\s-]?free|stim[\s-]?free|uten koffein|non[\s-]?stim|pump/.test(all) ? 'koffeinfri' : /koffein|caffeine|stim/.test(all) ? 'koffein' : 'ukjent';
     return { cat: 'pwo', sub };
   }
@@ -125,7 +134,7 @@ export function classify(raw) {
   if (/beta[\s-]?alanin/.test(name)) return { cat: 'aminosyrer', sub: 'betaalanin' };
   if (/citrullin|arginin|arginine/.test(name)) return { cat: 'aminosyrer', sub: 'citrullin' };
   if (/glutamin/.test(name)) return { cat: 'aminosyrer', sub: 'glutamin' };
-  if (/aminosyre|amino acid|taurin|carnitin|karnitin|hmb\b|tyrosin/.test(all) && !/protein|whey/.test(name)) return { cat: 'aminosyrer', sub: 'annet' };
+  if (/aminosyre|amino acid|taurin|carnitin|karnitin|hmb\b|tyrosin|lysin|glycin|glycine/.test(name) || (/aminosyre|amino acid/.test(cat) && !VITAMIN_WORD.test(name) && !/protein|whey/.test(name))) return { cat: 'aminosyrer', sub: 'annet' };
   const isProtein = /protein|whey|myse|kasein|casein|isolat|isolate|\biso\b|clear whey/.test(name) || /proteinpulver|whey|kasein|myseprotein|vegansk protein|erteprotein|soyaprotein/.test(cat);
   if (isProtein && !/kollagen|collagen/.test(name)) {
     const sub = /kasein|casein|micellar|night/.test(name) || /kasein/.test(cat)
@@ -139,7 +148,9 @@ export function classify(raw) {
             : 'blandet';
     return { cat: 'protein', sub };
   }
-  if (/karbohydrat|carbs?\b|cream of rice|maltodextrin|cyclic dextrin|vitargo|dextrose/.test(all)) return { cat: 'gainer', sub: 'karbo' };
+  // Karbohydrater avgjøres av navnet (Sunkost har f.eks. kollagen i kategorien «Proteiner/Karbohydrater»)
+  if ((/karbohydrat|carbs?\b|cream of rice|rismel|maltodextrin|dextrin|vitargo|dextrose|energi ?gel|energy ?gel|\bgel\b|drink mix|carbo/.test(name) || (/druesukker/.test(name) && parseWeight(raw.name) >= 250)) && !/kollagen|collagen/.test(name)) return { cat: 'gainer', sub: 'karbo' };
+  if (/druesukker/.test(name)) return null; // druesukker-godteri
   const v = (s, sub) => (s ? { cat: 'vitaminer', sub } : null);
   return (
     v(/omega|fiskeolje|fish ?oil|krill|tran\b|cod liver/.test(name), 'omega3') ||
@@ -312,7 +323,8 @@ export function normalize(raw) {
   const out = [];
   for (const [size, allVars] of bySize) {
     let vars = allVars;
-    const grams = parseWeight(size) || parseWeight(raw.weightText) || parseWeight(raw.name) || (vars[0]?.grams > 0 && vars[0].grams < 25000 ? vars[0].grams : null);
+    // Shopifys «grams» er fraktvekt (med emballasje), ikke nettovekt, og brukes derfor ikke
+    const grams = parseWeight(size) || parseWeight(raw.weightText) || parseWeight(raw.name);
     let cnt = parseCount(size) || parseCount(raw.name);
     // Sikkerhetssjekk: en bar/drikk under 6 kr per stk er nesten alltid stykkpris på en "N stk"-side
     if ((cls.cat === 'barer' || cls.cat === 'drikke') && cnt?.count > 1) {

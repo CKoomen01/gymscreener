@@ -51,6 +51,19 @@ test('klassifisering', () => {
   assert.equal(classify({ name: 'Shaker 700 ml', shopCategory: 'Tilbehør' }), null);
   assert.equal(classify({ name: 'Omega-3 Fiskeolje 120 kapsler', shopCategory: '' }).sub, 'omega3');
   assert.equal(classify({ name: 'C4 Original Fruit Punch, pre-workout-pulver', shopCategory: '' }).cat, 'pwo');
+  // Feil funnet i dobbeltsjekken
+  assert.equal(classify({ name: 'Panda lakris bar 32 gr', shopCategory: '' }), null);
+  assert.equal(classify({ name: 'Moonvalley oats & dates energy bar 50 g', shopCategory: '' }), null);
+  assert.equal(classify({ name: 'Moonvalley chocolate dipped protein bar raspberry 50 g', shopCategory: '' }).cat, 'barer');
+  assert.equal(classify({ name: 'Barebells Salty Peanut 55 g', shopCategory: '' }).cat, 'barer');
+  assert.equal(classify({ name: 'SmartShake Original2Go Mist Gray 800ml', shopCategory: '' }), null);
+  assert.equal(classify({ name: 'Biona coconut milk classic 400 ml', shopCategory: '' }), null);
+  assert.equal(classify({ name: 'Star Nutrition - Ultimate Magnesium', shopCategory: 'BCAA & Aminosyrer' }).cat, 'vitaminer');
+  assert.equal(classify({ name: 'Collagen Cherry, 60 stk', shopCategory: 'Proteiner/Karbohydrater' }).sub, 'kollagen');
+  assert.equal(classify({ name: 'Bloom Clear Protein Collagen 250 g', shopCategory: 'PWO' }).cat, 'vitaminer');
+  assert.equal(classify({ name: 'Better you magnesium sleep lotion 180 ml', shopCategory: '' }), null);
+  assert.equal(classify({ name: 'Cream Of Rice Rismel 1000 g', shopCategory: '' }).sub, 'karbo');
+  assert.equal(classify({ name: 'NJIE ProPud Milkshake Vanilla 330ml', shopCategory: '' }).cat, 'drikke');
 });
 
 test('protein per 100 g', () => {
