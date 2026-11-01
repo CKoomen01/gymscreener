@@ -1,6 +1,6 @@
 // Adressen til Cloudflare Worker-proxyen (fylles inn etter at den er satt opp).
 // Kan også limes inn under «Innstillinger» på nettsiden uten ny publisering.
-export const PROXY_URL = '';
+export const PROXY_URL = 'https://gymscreener-proxy.corneliskoomen.workers.dev';
 
 export const DATA_URL = `${import.meta.env.BASE_URL}data/products.json`;
 
