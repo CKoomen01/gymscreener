@@ -52,18 +52,23 @@ export default function SameProductView({ products, settings, promos, live }) {
         const key = g.items[0].mk;
         const allFlavors = [...new Set(g.items.flatMap((p) => p.v.map((v) => v.f).filter(Boolean)))].sort();
         const fsel = flavorSel[key] || '';
-        const offers = g.items
-          .map((p) => {
-            const vs = p.v.filter((v) => (fsel ? v.f === fsel : true));
-            const inStock = vs.filter((v) => v.st);
-            const pick = (inStock.length ? inStock : vs).reduce((a, b) => (!a || unitPrice(b, p.s, settings).price < unitPrice(a, p.s, settings).price ? b : a), null);
-            if (!pick) return null;
-            const up = unitPrice(pick, p.s, settings);
+        // Én linje per butikk: billigste variant (på lager først) for valgt smak, på tvers av butikkens sider
+        const perShop = new Map();
+        for (const p of g.items) {
+          for (const v of p.v) {
+            if (fsel && v.f !== fsel) continue;
+            const up = unitPrice(v, p.s, settings);
+            const cur = perShop.get(p.s);
+            const better = !cur || (v.st && !cur.v.st) || (!!v.st === !!cur.v.st && up.price < cur.up.price);
+            if (better) perShop.set(p.s, { p, v, up });
+          }
+        }
+        const offers = [...perShop.values()]
+          .map(({ p, v, up }) => {
             const order = orderTotal(p.s, [{ price: up.price, onSale: up.onSale, qty: 1, cat: p.c, kg: (p.g || 0) / 1000, name: `${p.b || ''} ${p.n}`, sd: p.sd }], settings, promos?.[p.s]);
-            return { p, v: pick, up, order, inStock: !!pick.st };
+            return { p, v, up, order, inStock: !!v.st };
           })
-          .filter(Boolean)
-          .sort((a, b) => (b.inStock - a.inStock) || a.up.price - b.up.price);
+          .sort((a, b) => b.inStock - a.inStock || a.order.total - (a.order.shipping || 0) - (b.order.total - (b.order.shipping || 0)));
         return (
           <article key={key} className="group">
             <header>

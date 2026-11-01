@@ -250,7 +250,8 @@ export function dailyDoses(raw, count) {
 }
 
 const SIZE_WORDS = /\b\d+(?:[.,]\d+)?\s*(kg|gr|g|gram|lbs?|ml|cl|l|stk|kapsler|caps|tabs|tabletter|softgels|porsjoner|servings|pack|pk)\b|\b\d+\s*[x×]\s*\d+\s*(g|ml)?\b/gi;
-const NOISE = /\b(proteinpulver|proteinbar|proteindrikk|kosttilskudd|pre-?workout-?pulver|pulver|powder|smak|flavou?r|ny|new|nyhet|kampanje|tilbud|outlet|kort dato|best før|med|with|and|og|the|for|fra|i|-|\|)\b/gi;
+// Generiske ord som butikkene legger til eller utelater ("Whey-80 Myseprotein" = "Whey-80 proteinpulver")
+const NOISE = /\b(proteinpulver|proteinbar|proteindrikk|myseprotein|wheyprotein|protein|kosttilskudd|kreatinmonohydrat|aminosyre|vitamin|kapsler|tabletter|pre-?workout-?pulver|pulver|powder|smak|flavou?r|ny|new|nyhet|kampanje|tilbud|outlet|kort dato|best før|med|with|and|og|the|for|fra|i|-|\|)\b/gi;
 
 function slug(s) {
   return String(s || '')
@@ -277,7 +278,10 @@ export function matchKey(brand, name, flavorWords, grams) {
   for (const w of flavorWords) if (w) n = n.replace(new RegExp(slug(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), ' ');
   for (const [, re] of FLAVOR_GROUPS) n = n.replace(new RegExp(re.source, 'gi'), ' ');
   const b = normBrand(brand, name);
-  for (const bw of b.split(' ')) if (bw.length > 2) n = n.replace(new RegExp(`\\b${bw}\\b`, 'g'), ' ');
+  // Fjern alle ord fra merkenavnet (også «nutrition» o.l. som normBrand kutter)
+  const brandWords = `${b} ${slug(brand || '')}`.replace(/[^a-z0-9 ]/g, ' ').split(/\s+/);
+  for (const bw of brandWords) if (bw.length > 2) n = n.replace(new RegExp(`\\b${bw}\\b`, 'g'), ' ');
+  n = n.replace(/\b(nutrition|sports?nutrition|supplements)\b/g, ' ');
   const tokens = n.replace(NOISE, ' ').replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter((x) => x.length > 1);
   const uniq = [...new Set(tokens)].sort();
   return `${b}|${uniq.join(' ')}|${grams ? Math.round(grams / 50) * 50 : ''}`;
