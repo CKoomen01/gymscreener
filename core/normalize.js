@@ -273,12 +273,12 @@ export function matchKey(brand, name, flavorWords, grams) {
 }
 
 // Prøver å finne smaken i produktnavnet når butikken har én side per smak.
-const PRODUCT_WORD = /\b(whey|protein\w*|isolat\w*|isolate|kasein|casein|kreatin\w*|creatine|creapure|pwo|pre-?workout|bcaa|eaa|gainer|bar|barer|shake|clear|myse\w*|vegan|complex|blend|pulver|powder|drink|drikk)\b/gi;
+const PRODUCT_WORD = /\b(whey|protein\w*|isolat\w*|isolate|kasein|casein|kreatin\w*|creatine|creapure|monohydrat\w*|micronized|mikronisert|pwo|pre-?workout|bcaa|eaa|gainer|bar|barer|shake|clear|myse\w*|vegan|complex|blend|pulver|powder|drink|drikk)\b/gi;
 
 export function flavorFromName(name) {
   const n = String(name || '').replace(SIZE_WORDS, ' ');
   if (!FLAVOR_GROUPS.some(([, re]) => re.test(n))) return null;
-  const clean = (s) => s.replace(/[(),|]/g, ' ').replace(/\s+/g, ' ').trim().replace(/^[^A-Za-zÆØÅæøå]+/, '');
+  const clean = (s) => s.replace(/[(),|]/g, ' ').replace(/\s+/g, ' ').trim().replace(/^[^A-Za-zÆØÅæøå]+/, '').replace(/^x\s+/i, '');
   // 1) Del av navnet skilt med " - " eller komma som inneholder en smak
   const parts = n.split(/\s[-–|]\s|,\s/);
   const isProductWord = new RegExp(PRODUCT_WORD.source, 'i');
@@ -310,9 +310,16 @@ export function normalize(raw) {
     bySize.get(key).push(v);
   }
   const out = [];
-  for (const [size, vars] of bySize) {
+  for (const [size, allVars] of bySize) {
+    let vars = allVars;
     const grams = parseWeight(size) || parseWeight(raw.weightText) || parseWeight(raw.name) || (vars[0]?.grams > 0 && vars[0].grams < 25000 ? vars[0].grams : null);
-    const cnt = parseCount(size) || parseCount(raw.name);
+    let cnt = parseCount(size) || parseCount(raw.name);
+    // Sikkerhetssjekk: en bar/drikk under 6 kr per stk er nesten alltid stykkpris på en "N stk"-side
+    if ((cls.cat === 'barer' || cls.cat === 'drikke') && cnt?.count > 1) {
+      const perPiece = vars.filter((x) => x.price / cnt.count < 6);
+      if (perPiece.length === vars.length) cnt = null;
+      else if (perPiece.length) vars = vars.filter((x) => !perPiece.includes(x));
+    }
     let sub = cls.sub;
     if (cls.cat === 'kreatin' && sub === 'annet' && cnt && /kaps|tabl/.test(cnt.unit)) sub = 'kapsler';
     const pp = ['protein', 'gainer'].includes(cls.cat) || (cls.cat === 'barer' || cls.cat === 'drikke') ? proteinPer100(raw.text, raw.nutritionText) : null;

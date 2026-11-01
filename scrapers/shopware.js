@@ -21,6 +21,19 @@ export function parseProductPage(shop, url, html) {
     const list = parsePrice(m[4]);
     variants.push({ id: m[2], flavor, size: null, price, listPrice: list && list > price ? list : null, inStock: !soldOut, url, expiry: m[5] || null });
   }
+  // Bodylab har egen pakningsgruppe (BOX/PCS) for barer og drikke. Hver smak står da to ganger:
+  // eskepris og stykkpris. Vi beholder eskeprisen (den høyeste) per smak.
+  const PACK = /^(box|pcs|stk|eske|kasse|pakke|single)$/i;
+  if (variants.filter((v) => PACK.test(v.flavor || '')).length >= 2) {
+    const byFlavor = new Map();
+    for (const v of variants) {
+      if (PACK.test(v.flavor || '')) continue;
+      const cur = byFlavor.get(v.flavor);
+      if (!cur || v.price > cur.price) byFlavor.set(v.flavor, v);
+    }
+    variants.length = 0;
+    variants.push(...byFlavor.values());
+  }
   if (!variants.length) {
     const offer = Array.isArray(ld.offers) ? ld.offers[0] : ld.offers;
     const price = parsePrice(offer?.price);
