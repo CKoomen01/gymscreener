@@ -125,6 +125,32 @@ async function main() {
     }
   }
 
+  // Samme produkt har samme næringsinnhold i alle butikker: fyll inn manglende protein fra en annen butikk
+  const nutrition = new Map();
+  const baseKey = (p) => (p.mk ? p.mk.split('|').slice(0, 2).join('|') : null);
+  for (const p of products) {
+    const k = baseKey(p);
+    if (!k || k.endsWith('|')) continue;
+    if (p.pp && !p.ppFrom) (nutrition.get(k) || nutrition.set(k, { pp: [], pu: [] }).get(k)).pp.push(p.pp);
+    if (p.pu && !p.puFrom) (nutrition.get(k) || nutrition.set(k, { pp: [], pu: [] }).get(k)).pu.push(p.pu);
+  }
+  const median = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
+  let filled = 0;
+  for (const p of products) {
+    const n = nutrition.get(baseKey(p));
+    if (!n) continue;
+    if (!p.pp && n.pp.length && ['protein', 'gainer', 'barer', 'drikke'].includes(p.c)) {
+      p.pp = median(n.pp);
+      p.ppFrom = 'match';
+      filled++;
+    }
+    if (!p.pu && n.pu.length && (p.c === 'barer' || p.c === 'drikke')) {
+      p.pu = median(n.pu);
+      p.puFrom = 'match';
+    }
+  }
+  console.log(`Proteininnhold fylt inn fra samme produkt i annen butikk: ${filled}`);
+
   await mkdir(new URL('../public/data/', import.meta.url), { recursive: true });
   const data = { generatedAt: new Date().toISOString(), seconds: Math.round((Date.now() - started) / 1000), shops, products };
   await writeFile(OUT, JSON.stringify(data));

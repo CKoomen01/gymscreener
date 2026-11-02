@@ -70,7 +70,12 @@ export default function ProductCard({ rank, row, unit, qtyMode, live }) {
         <div className="meta">
           {prod.b && <span>{prod.b}</span>}
           {sizeLabel(prod) && <span>{sizeLabel(prod)}</span>}
-          {prod.pp && <span>{String(prod.pp).replace('.', ',')} % protein</span>}
+          {prod.pp && (
+            <span title={prod.ppFrom ? 'Butikken oppgir ikke næringsinnhold. Tallet er hentet fra samme produkt i en annen butikk.' : undefined}>
+              {prod.ppFrom ? '≈ ' : ''}
+              {String(prod.pp).replace('.', ',')} % protein
+            </span>
+          )}
           {prod.pu && (prod.c === 'barer' || prod.c === 'drikke') && <span>{String(prod.pu).replace('.', ',')} g protein/stk</span>}
           {prod.ag && prod.c === 'kreatin' && prod.sc !== 'monohydrat' && <span>{String(prod.ag).replace('.', ',')} g kreatin</span>}
           {prod.dd && <span>{prod.dd} dagsdoser</span>}
