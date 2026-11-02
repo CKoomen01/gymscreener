@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UNIT_LABEL } from '../../core/pricing.js';
 import { kr, krSmart, shopName, sizeLabel, linkFor, clock } from '../format.js';
+import { HistoryBadge, HistoryDetails } from './PriceHistory.jsx';
 
 export function Breakdown({ row, qtyMode }) {
   const { v, up, order, qty } = row;
@@ -97,6 +98,7 @@ export default function ProductCard({ rank, row, unit, qtyMode, live }) {
           )}
         </div>
         <div className="badges">
+          <HistoryBadge stats={row.stats} />
           {up.kind === 'kampanje' && <span className="badge sale">Kampanje</span>}
           {up.kind === 'medlemspris' && <span className="badge member">Medlemspris</span>}
           {order.discount && <span className="badge code">{order.discount.label}</span>}
@@ -110,7 +112,12 @@ export default function ProductCard({ rank, row, unit, qtyMode, live }) {
           {prod.liveFailed && <span className="badge warn">Live-sjekk feilet, viser siste skann</span>}
           {busy && <span className="badge wait">Oppdaterer…</span>}
         </div>
-        {open && <Breakdown row={row} qtyMode={qtyMode} />}
+        {open && (
+          <>
+            <Breakdown row={row} qtyMode={qtyMode} />
+            <HistoryDetails stats={row.stats} current={v.p} />
+          </>
+        )}
         <div className="ship muted small">
           {order.freeShippingAt ? (order.missingForFree > 0 ? `Gratis frakt fra ${kr(order.freeShippingAt)} (mangler ${kr(order.missingForFree)})` : 'Gratis frakt') : 'Ingen gratisfraktgrense'}
           {' · '}

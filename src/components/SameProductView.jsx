@@ -4,9 +4,11 @@ import { unitPrice, perUnit, defaultUnit, UNIT_LABEL, orderTotal } from '../../c
 import { textOk } from '../../core/rank.js';
 import { useStored } from '../settings.js';
 import { kr, krSmart, shopName, sizeLabel, linkFor } from '../format.js';
+import { priceStats, seriesKey } from '../../core/history.js';
+import { HistoryBadge } from './PriceHistory.jsx';
 
 // Samme produkt (merke + navn + størrelse) på tvers av butikker
-export default function SameProductView({ products, settings, promos, live }) {
+export default function SameProductView({ products, settings, promos, live, history }) {
   const [q, setQ] = useStored('same-q', '');
   const [cat, setCat] = useStored('same-cat', 'protein');
   const [flavorSel, setFlavorSel] = useState({});
@@ -66,7 +68,8 @@ export default function SameProductView({ products, settings, promos, live }) {
         const offers = [...perShop.values()]
           .map(({ p, v, up }) => {
             const order = orderTotal(p.s, [{ price: up.price, onSale: up.onSale, qty: 1, cat: p.c, kg: (p.g || 0) / 1000, name: `${p.b || ''} ${p.n}`, sd: p.sd }], settings, promos?.[p.s]);
-            return { p, v, up, order, inStock: !!v.st };
+            const stats = history ? priceStats(history, seriesKey(p.liveOf || p.k, v.id), v.p) : null;
+            return { p, v, up, order, inStock: !!v.st, stats };
           })
           .sort((a, b) => b.inStock - a.inStock || a.order.total - (a.order.shipping || 0) - (b.order.total - (b.order.shipping || 0)));
         return (
@@ -107,6 +110,11 @@ export default function SameProductView({ products, settings, promos, live }) {
                     <td className="num">
                       {kr(o.up.price)}
                       {o.up.kind === 'medlemspris' && <span className="badge member">medlem</span>}
+                      {o.stats?.level && (
+                        <div>
+                          <HistoryBadge stats={o.stats} />
+                        </div>
+                      )}
                       {o.v.lp && <div className="strike small">{kr(o.v.lp)}</div>}
                     </td>
                     <td className="num">{krSmart(perUnit(o.up.price, o.p, g.unit))}</td>

@@ -14,7 +14,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write # for å lagre prishistorikken i grenen «data»
   pages: write
   id-token: write
 
@@ -41,8 +41,39 @@ jobs:
           mkdir -p public/data
           curl -fsSL "$PREV_DATA_URL" -o public/data/products.json || echo "Ingen tidligere data"
       - name: Full skann av alle butikker
+        id: scan
         if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !inputs.skip_scan) || (github.event_name == 'push' && hashFiles('public/data/products.json') == '')
         run: node scripts/scan.mjs
+      # Prishistorikken ligger permanent i grenen «data» (ikke bare på nettsiden), så den aldri går tapt
+      - name: Hent prishistorikk
+        id: hist
+        run: |
+          if git fetch --depth=1 origin data:data 2>/dev/null; then
+            git show data:history.json > public/data/history.json
+            echo "exists=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "Ingen data-gren ennå"
+            echo "exists=0" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Oppdater og lagre prishistorikk
+        if: steps.scan.outcome == 'success'
+        env:
+          REQUIRE_HISTORY: ${{ steps.hist.outputs.exists }}
+        run: |
+          node scripts/history.mjs
+          git config user.name "gymscreener-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ "${{ steps.hist.outputs.exists }}" = "1" ]; then
+            git worktree add .hist data
+          else
+            git worktree add --detach .hist
+            git -C .hist checkout --orphan data
+            git -C .hist rm -rf -q . || true
+          fi
+          cp public/data/history.json .hist/history.json
+          git -C .hist add history.json
+          git -C .hist commit -q -m "Prishistorikk $(date -u +%FT%H:%MZ)" || echo "Ingen endring"
+          git -C .hist push origin data
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:

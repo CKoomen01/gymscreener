@@ -3,6 +3,7 @@ import { CATEGORIES, SUBCATEGORIES, FLAVOR_GROUPS } from '../../core/normalize.j
 import { SHOPS, SHOP_IDS } from '../../core/shops.js';
 import { UNIT_LABEL, defaultUnit } from '../../core/pricing.js';
 import { rankRows, flavorIndex } from '../../core/rank.js';
+import { dayIndex, osloDate, MIN_DAYS_FOR_BADGE } from '../../core/history.js';
 import { useStored } from '../settings.js';
 import { LIVE_TOP_N } from '../config.js';
 import ProductCard from './ProductCard.jsx';
@@ -20,9 +21,9 @@ const UNITS = {
 const QTY_LABEL = { kg: 'kg', kgProtein: 'kg rent protein', kgActive: 'kg kreatin', stk: 'stk', gProtein: 'g protein', doser: 'dagsdoser' };
 const GROUPS = [...FLAVOR_GROUPS.map(([n]) => n), 'Annen smak', 'Ikke oppgitt'];
 
-const DEFAULT = { cat: 'protein', subs: [], groups: [], flavor: '', shops: [], hideShort: false, showOut: false, q: '', unit: 'kgProtein', qty: '' };
+const DEFAULT = { cat: 'protein', subs: [], groups: [], flavor: '', shops: [], hideShort: false, showOut: false, q: '', unit: 'kgProtein', qty: '', sort: 'price', onlyCheap: false };
 
-export default function RankingView({ products, settings, promos, live }) {
+export default function RankingView({ products, settings, promos, live, history }) {
   const [f, setF] = useStored('filters-v1', DEFAULT);
   const [shown, setShown] = useState(40);
   const [openFilters, setOpenFilters] = useState(false); // bare på mobil
@@ -31,7 +32,8 @@ export default function RankingView({ products, settings, promos, live }) {
 
   const unit = UNITS[f.cat].includes(f.unit) ? f.unit : defaultUnit(f.cat);
   const filters = { ...f, unit, qty: Number(String(f.qty).replace(',', '.')) || 0 };
-  const rows = useMemo(() => rankRows(products, filters, settings, promos), [products, JSON.stringify(filters), settings, promos]);
+  const rows = useMemo(() => rankRows(products, filters, settings, promos, history), [products, JSON.stringify(filters), settings, promos, history]);
+  const histDays = useMemo(() => (history ? dayIndex(history.start, osloDate()) + 1 : 0), [history]);
   const flavors = useMemo(() => flavorIndex(products, f.cat), [products, f.cat]);
   const withMetric = rows.filter((r) => r.metric !== null);
   const without = rows.length - withMetric.length;
@@ -69,6 +71,25 @@ export default function RankingView({ products, settings, promos, live }) {
               </button>
             ))}
           </div>
+        </div>
+        <div className="field">
+          <label>Rekkefølge</label>
+          <div className="seg">
+            <button className={f.sort !== 'hist' ? 'on' : ''} onClick={() => set({ sort: 'price' })}>
+              Billigst per enhet
+            </button>
+            <button className={f.sort === 'hist' ? 'on' : ''} onClick={() => set({ sort: 'hist' })}>
+              Mest under egen snittpris
+            </button>
+          </div>
+          <label className="row-check">
+            <input type="checkbox" checked={!!f.onlyCheap} onChange={() => set({ onlyCheap: !f.onlyCheap })} /> Bare varer som er billige nå (mot egen prishistorikk)
+          </label>
+          <p className="muted small">
+            {history
+              ? `Prishistorikk siden ${new Date(history.start).toLocaleDateString('nb-NO')} (${histDays} ${histDays === 1 ? 'dag' : 'dager'}). Den bygges opp mot 6 måneder. «Billig nå» og «Dyr nå» vises når en vare har minst ${MIN_DAYS_FOR_BADGE} dager med data.`
+              : 'Prishistorikk lastes …'}
+          </p>
         </div>
         <button className="ghost wide filter-toggle" onClick={() => setOpenFilters((o) => !o)} aria-expanded={openFilters}>
           {openFilters ? 'Skjul filtre' : `Flere filtre (smak, mengde, butikker)${f.groups.length || f.flavor || f.qty || f.shops.length || f.subs.length ? ' · aktive' : ''}`}
@@ -146,7 +167,8 @@ export default function RankingView({ products, settings, promos, live }) {
       <section className="results" aria-live="polite">
         <div className="results-head">
           <h2>
-            {CATEGORIES[f.cat].label}: {withMetric.length} treff sortert på {UNIT_LABEL[unit]}
+            {CATEGORIES[f.cat].label}: {withMetric.length} treff {f.sort === 'hist' ? 'sortert på hvor langt under egen snittpris de er' : `sortert på ${UNIT_LABEL[unit]}`}
+            {f.onlyCheap ? ', bare billige nå' : ''}
             {filters.qty ? ` for ${f.qty} ${QTY_LABEL[unit]} inkl. frakt` : ''}
           </h2>
           {live.enabled && (
@@ -160,7 +182,13 @@ export default function RankingView({ products, settings, promos, live }) {
             {without} produkter mangler data for {UNIT_LABEL[unit]} (f.eks. ukjent proteininnhold eller vekt) og vises nederst.
           </p>
         )}
-        {rows.length === 0 && <div className="notice">Ingen treff. Prøv å fjerne noen filtre.</div>}
+        {rows.length === 0 && (
+          <div className="notice">
+            {f.onlyCheap
+              ? `Ingen varer er merket «Billig nå» ennå. Merket krever minst ${MIN_DAYS_FOR_BADGE} dager med prishistorikk, og historikken har ${histDays} ${histDays === 1 ? 'dag' : 'dager'} så langt.`
+              : 'Ingen treff. Prøv å fjerne noen filtre.'}
+          </div>
+        )}
         <ol className="cards">
           {rows.slice(0, shown).map((r, i) => (
             <ProductCard key={r.prod.k} rank={i + 1} row={r} unit={unit} qtyMode={!!filters.qty} live={live} />

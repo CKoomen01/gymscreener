@@ -7,6 +7,7 @@ Sammenligner priser på kosttilskudd (proteinpulver, kreatin, pre-workout, amino
 ## Hvordan det virker
 
 - **Full skann** (`scripts/scan.mjs`) kjøres av GitHub Actions hver 4. time og ved hver kodeendring. Resultatet lagres i `public/data/products.json` og publiseres sammen med siden. Feiler en butikk, beholdes forrige skann for den.
+- **Prishistorikk:** Hvert skann logger pris per produkt, butikk og smak i grenen `data` (`history.json`). Siden viser snitt, laveste, høyeste og prisgraf for siste 180 dager, og merker «Billig nå» / «Dyr nå» når en vare har minst 14 dager med data.
 - **Live-oppdatering:** Når siden brukes, henter den ferske priser og lagerstatus for de øverste treffene via en Cloudflare Worker (`worker/`). Den bruker de samme skraperne som full skann. Se [CLOUDFLARE-OPPSETT.md](CLOUDFLARE-OPPSETT.md).
 - **Rabatter:** Medlemspriser og førstekjøpsrabatter tas bare med for butikkene du krysser av for. Rabattkoder hentes bare fra butikkenes egne sider (forside og egen kodeside), med vilkår som minstebeløp, gyldighet og om koden gjelder nedsatte varer.
 - **Frakt:** Fraktpris og gratisgrense per butikk står i `core/shops.js`. Lavere grenser fra bannere på forsiden plukkes opp automatisk.

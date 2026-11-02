@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DATA_URL, PROXY_URL, LIVE_TTL_MS } from './config.js';
+import { DATA_URL, HISTORY_URL, PROXY_URL, LIVE_TTL_MS } from './config.js';
 import { useSettings, useStored } from './settings.js';
 import { refreshProduct, proxyHealthy } from './live.js';
 import { mapLimit } from '../core/util.js';
@@ -19,6 +19,7 @@ const TABS = [
 
 export default function App() {
   const [data, setData] = useState(null);
+  const [history, setHistory] = useState(null);
   const [error, setError] = useState(null);
   const [settings, setSettings] = useSettings();
   const [tab, setTab] = useStored('tab', 'rangering');
@@ -33,6 +34,11 @@ export default function App() {
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then(setData)
       .catch((e) => setError(String(e)));
+    // Prishistorikken lastes etter prisene, og siden virker også uten den
+    fetch(HISTORY_URL, { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((h) => h?.series && setHistory(h))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -119,8 +125,8 @@ export default function App() {
       <main>
         {error && <div className="notice error">Klarte ikke å laste prisdata ({error}). Prøv å laste siden på nytt.</div>}
         {!data && !error && <div className="notice">Laster priser…</div>}
-        {data && tab === 'rangering' && <RankingView products={products} settings={settings} promos={promos} live={liveInfo} />}
-        {data && tab === 'produkt' && <SameProductView products={products} settings={settings} promos={promos} live={liveInfo} />}
+        {data && tab === 'rangering' && <RankingView products={products} settings={settings} promos={promos} live={liveInfo} history={history} />}
+        {data && tab === 'produkt' && <SameProductView products={products} settings={settings} promos={promos} live={liveInfo} history={history} />}
         {data && tab === 'handlekurv' && <CartView products={products} settings={settings} promos={promos} live={liveInfo} />}
         {data && tab === 'butikker' && <ShopsView data={data} settings={settings} setSettings={setSettings} openSetup={() => setShowSetup(true)} />}
       </main>

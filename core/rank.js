@@ -1,5 +1,6 @@
 // Rangering per kategori. Rent funksjonelt, slik at det kan testes uten nettleser.
 import { unitPrice, orderTotal, amountPerPackage, packagesFor } from './pricing.js';
+import { priceStats, seriesKey } from './history.js';
 
 export function flavorOk(v, f) {
   if (f.flavor) return v.f && v.f.toLowerCase() === f.flavor.toLowerCase();
@@ -20,8 +21,9 @@ export function textOk(prod, q) {
     .every((w) => hay.includes(w));
 }
 
-// f: { cat, subs[], groups[], flavor, shops[], hideShort, showOut, q, unit, qty, minG, maxG }
-export function rankRows(products, f, settings, promos) {
+// f: { cat, subs[], groups[], flavor, shops[], hideShort, showOut, q, unit, qty, minG, maxG, onlyCheap, sort }
+// history: prishistorikk (valgfri). Statistikken sammenligner butikkens hyllepris (v.p) med egen historikk.
+export function rankRows(products, f, settings, promos, history) {
   const rows = [];
   for (const prod of products) {
     if (prod.c !== f.cat) continue;
@@ -50,9 +52,17 @@ export function rankRows(products, f, settings, promos) {
       else metric = (order.total - (order.shipping || 0)) / per;
       if (f.unit === 'gProtein' && metric !== null) metric *= 100;
     }
-    rows.push({ prod, v: best.v, up: best.up, matching: vs, metric, per, qty, order });
+    const stats = history ? priceStats(history, seriesKey(prod.liveOf || prod.k, best.v.id), best.v.p) : null;
+    if (f.onlyCheap && stats?.level !== 'billig') continue;
+    rows.push({ prod, v: best.v, up: best.up, matching: vs, metric, per, qty, order, stats });
   }
-  rows.sort((a, b) => (a.metric ?? Infinity) - (b.metric ?? Infinity) || a.up.price - b.up.price);
+  if (f.sort === 'hist') {
+    // Mest under egen snittpris først; varer uten nok historikk sist
+    const score = (r) => (r.stats && r.stats.days >= 2 ? r.stats.vsMean : Infinity);
+    rows.sort((a, b) => score(a) - score(b) || (a.metric ?? Infinity) - (b.metric ?? Infinity));
+  } else {
+    rows.sort((a, b) => (a.metric ?? Infinity) - (b.metric ?? Infinity) || a.up.price - b.up.price);
+  }
   return rows;
 }
 
