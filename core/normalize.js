@@ -93,7 +93,7 @@ export function parseCount(text) {
   return null;
 }
 
-const EXCLUDE = /shaker|flaske|bottle|t-?skjorte|hoodie|\btights\b|shorts|singlet|\bbelte\b|straps|hansker|\bmatte\b|pannekake|pancake|pudding(?!.*protein ?pulver)|pean(ø|o)ttsm(ø|o)r|n(ø|o)ttesm(ø|o)r|\bspread\b|sirup|syrup|\bsaus\b|\bsauce\b|m(ü|u)sli|granola|\bchips\b|popcorn|nudler|\bpasta\b|\bgrøt\b|havregryn|frokostblanding|gavekort|kokebok|\bbok\b|sokker|\bkopp\b|\bboks\b|oppbevaring|pillbox|pilledosett|\bvekt\b(?!.*gainer)|rabattkort|bake ?mix|\bbaking\b|\bmel\b|peanut butter|\bkaffe\b(?!.*(protein|kreatin))|\bte\b|kombucha|smoothie|\bjuice\b|kokosvann|mineralvann|energidrikk(?!.*protein)|\bnocco\b|\bmonster\b|red bull|\bcelsius\b|powerade|sportsdrikk|smart ?shake|blender ?bottle|\bchalk\b|kokosmelk|coconut milk|havremelk|oat milk|\blotion\b|\bserum\b|sjampo|shampoo|tannkrem|deodorant|\bsåpe\b|bodylotion|freeze-?dried|tørket frukt|oatmeal|porridge|\bgrøt\b|pastill/i;
+const EXCLUDE = /shaker|flaske|bottle|t-?skjorte|hoodie|\btights\b|shorts|singlet|\bbelte\b|straps|hansker|\bmatte\b|pannekake|pancake|pudding(?!.*protein ?pulver)|pean(ø|o)ttsm(ø|o)r|n(ø|o)ttesm(ø|o)r|\bspread\b|sirup|syrup|\bsaus\b|\bsauce\b|m(ü|u)sli|granola|\bchips\b|popcorn|nudler|\bpasta\b|\bgrøt\b|havregryn|frokostblanding|gavekort|kokebok|\bbok\b|sokker|\bkopp\b|\bboks\b|oppbevaring|pillbox|pilledosett|\bvekt\b(?!.*gainer)|rabattkort|bake ?mix|\bbaking\b|\bmel\b|peanut butter|\bkaffe\b(?!.*(protein|kreatin))|\bte\b|kombucha|smoothie|\bjuice\b|kokosvann|mineralvann|energidrikk(?!.*protein)|\bnocco\b|\bmonster\b|red bull|\bcelsius\b|powerade|sportsdrikk|smart ?shake|blender ?bottle|\bchalk\b|kokosmelk|coconut milk|havremelk|oat milk|lotion|\bserum\b|^scoop\b|måleskje|sjampo|shampoo|tannkrem|deodorant|\bsåpe\b|bodylotion|freeze-?dried|tørket frukt|oatmeal|porridge|\bgrøt\b|pastill/i;
 
 // Barer må ha protein i navnet, kategorien eller være fra et kjent proteinbar-merke
 const PROTEIN_BAR_BRAND = /barebells|\bquest\b|grenade|warrior|propud|njie|fulfil|misfits|nupo|big 100|core bar|\bpf\b|wispy|oh yeah|\bone bar\b|carb killa|swebar|smartsupps|nutramino|star nutrition|bodylab|chiefs|built bar|vitaprana/;
@@ -331,13 +331,9 @@ export function normalize(raw) {
     const gramsTotal = parseWeight(size) || parseWeight(raw.weightText) || parseWeight(raw.name);
     let cnt = parseCount(size) || parseCount(raw.name);
     let grams = gramsTotal;
-    // «N x»-pakker (f.eks. gels) under 6 kr per stk er i praksis stykkpris: regn per stk
-    if (cnt?.unit === 'stk' && cnt.count > 1 && !['barer', 'drikke'].includes(cls.cat) && Math.max(...vars.map((x) => x.price || 0)) / cnt.count < 6) {
-      if (grams) grams = Math.round(grams / cnt.count);
-      cnt = null;
-    }
-    // Sikkerhetssjekk: en bar/drikk under 6 kr per stk er nesten alltid stykkpris på en "N stk"-side
-    if ((cls.cat === 'barer' || cls.cat === 'drikke') && cnt?.count > 1) {
+    // Sikkerhetssjekk for «N x»-pakker (barer, drikke, gels): under 6 kr per stk er i praksis stykkpris.
+    // Har siden både eske- og stykkpris, beholdes esken; har den bare stykkpris, regnes det per stk.
+    if ((cnt?.unit === 'stk' || ['barer', 'drikke'].includes(cls.cat)) && cnt?.count > 1) {
       const perPiece = vars.filter((x) => x.price / cnt.count < 6);
       if (perPiece.length === vars.length) {
         if (grams) grams = Math.round(grams / cnt.count);

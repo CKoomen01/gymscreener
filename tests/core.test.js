@@ -187,6 +187,12 @@ test('stykkpris på «N x»-side regnes per stk', () => {
   assert.equal(out[0].c, 'gainer');
   assert.equal(out[0].g, 40);
   assert.equal(out[0].cnt, null);
+  // Side med både eskepris og stykkpris: eskeprisen beholdes
+  const mixed = normalize({ shop: 'bodylab', id: 'g2', name: 'Energy Gel (12 x 40 g)', shopCategory: '', text: '', variants: [{ id: '1', flavor: 'Citrus', price: 249, inStock: true }, { id: '2', flavor: 'Citrus', price: 26, inStock: true }] });
+  assert.deepEqual(mixed[0].v.map((v) => v.p), [249]);
+  assert.equal(mixed[0].cnt, 12);
+  assert.equal(classify({ name: 'Scoop (70 ml)', shopCategory: '' }), null);
+  assert.equal(classify({ name: 'Zeolitt minerallotion 150 ml', shopCategory: '' }), null);
 });
 
 test('normalize lager produkt med smak fra navnet', () => {
