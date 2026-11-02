@@ -85,6 +85,7 @@ export default function SameProductView({ products, settings, promos, live }) {
                 ))}
               </select>
             )}
+            <div className="table-scroll">
             <table className="offers">
               <thead>
                 <tr>
@@ -111,14 +112,15 @@ export default function SameProductView({ products, settings, promos, live }) {
                     <td className="num">{krSmart(perUnit(o.up.price, o.p, g.unit))}</td>
                     <td className="num">{o.order.shippingUnknown ? `${kr(o.order.total)} + frakt` : kr(o.order.total)}</td>
                     <td>
-                      <a className="buy small" href={linkFor(o.p, o.v)} target="_blank" rel="noopener noreferrer">
-                        Til butikk ↗
+                      <a className="buy small" href={linkFor(o.p, o.v)} target="_blank" rel="noopener noreferrer" aria-label={`Til ${shopName(o.p.s)}`}>
+                        <span className="buy-text">Til butikk </span>↗
                       </a>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
             {live.enabled && (
               <button className="link small" onClick={() => live.refresh(g.items, true)}>
                 Oppdater dette produktet live i alle butikker
