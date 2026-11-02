@@ -328,13 +328,21 @@ export function normalize(raw) {
   for (const [size, allVars] of bySize) {
     let vars = allVars;
     // Shopifys «grams» er fraktvekt (med emballasje), ikke nettovekt, og brukes derfor ikke
-    const grams = parseWeight(size) || parseWeight(raw.weightText) || parseWeight(raw.name);
+    const gramsTotal = parseWeight(size) || parseWeight(raw.weightText) || parseWeight(raw.name);
     let cnt = parseCount(size) || parseCount(raw.name);
+    let grams = gramsTotal;
+    // «N x»-pakker (f.eks. gels) under 6 kr per stk er i praksis stykkpris: regn per stk
+    if (cnt?.unit === 'stk' && cnt.count > 1 && !['barer', 'drikke'].includes(cls.cat) && Math.max(...vars.map((x) => x.price || 0)) / cnt.count < 6) {
+      if (grams) grams = Math.round(grams / cnt.count);
+      cnt = null;
+    }
     // Sikkerhetssjekk: en bar/drikk under 6 kr per stk er nesten alltid stykkpris på en "N stk"-side
     if ((cls.cat === 'barer' || cls.cat === 'drikke') && cnt?.count > 1) {
       const perPiece = vars.filter((x) => x.price / cnt.count < 6);
-      if (perPiece.length === vars.length) cnt = null;
-      else if (perPiece.length) vars = vars.filter((x) => !perPiece.includes(x));
+      if (perPiece.length === vars.length) {
+        if (grams) grams = Math.round(grams / cnt.count);
+        cnt = null;
+      } else if (perPiece.length) vars = vars.filter((x) => !perPiece.includes(x));
     }
     let sub = cls.sub;
     if (cls.cat === 'kreatin' && sub === 'annet' && cnt && /kaps|tabl/.test(cnt.unit)) sub = 'kapsler';

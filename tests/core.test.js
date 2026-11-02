@@ -182,6 +182,13 @@ test('handlekurv velger samlet billigste med frakt', () => {
   assert.equal(res.solutions[0].total, 510);
 });
 
+test('stykkpris på «N x»-side regnes per stk', () => {
+  const out = normalize({ shop: 'bodylab', id: 'g', name: 'Energy Gel (12 x 40 g)', shopCategory: '', text: '', variants: [{ id: '1', flavor: 'Citrus', price: 26, inStock: true }] });
+  assert.equal(out[0].c, 'gainer');
+  assert.equal(out[0].g, 40);
+  assert.equal(out[0].cnt, null);
+});
+
 test('normalize lager produkt med smak fra navnet', () => {
   const out = normalize({ shop: 'xxl', id: '1', name: 'Whey Protein - Vanilla 900 g, proteinpulver', brand: 'Nutramino', shopCategory: 'Kosttilskudd', text: '', variants: [{ id: '1', flavor: null, price: 299, inStock: true }] });
   assert.equal(out.length, 1);
