@@ -82,7 +82,8 @@ async function product(shop, conf, tile, ctx, perVariantPrice) {
     image: p.images?.small?.[0]?.url || p.images?.large?.[0]?.url || null,
     text: stripHtml(`${p.shortDescription || ''}\n${p.longDescription || ''}`),
     nutritionText: stripHtml(p.custom?.nutritionAndIngredients || ''),
-    shortDate: /outlet|kort dato|best før/i.test(`${tile.category} ${p.productName}`),
+    // «OBS kort dato 2026-11-30» står i varselboksen på produktsiden
+    shortDate: /outlet|kort dato|best før/i.test(`${tile.category} ${p.productName} ${stripHtml(p.custom?.pdpNoticeBox || '')}`),
     promoText: promo.join(' | ') || null,
     variants: variants.filter((v) => v.price > 0),
     refresh: { kind: 'sfcc', pid: tile.pid, url: tile.url },

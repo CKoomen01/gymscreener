@@ -222,7 +222,7 @@ export const SHOPS = {
   sunkost: {
     name: 'Sunkost',
     url: 'https://sunkost.no',
-    platform: 'magento',
+    platform: 'sunkost',
     shipsFrom: 'Norge',
     shipping: { free: 299, cheapest: 49, home: 49, cheapestLabel: 'Helthjem postkasse (under 5 kg)', homeLabel: 'Helthjem postkasse' },
     membership: {

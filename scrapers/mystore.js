@@ -1,5 +1,5 @@
 // Mystore (Extreme Fitness, Hardcore Dealer): produkter fra sitemap, data fra produktsiden.
-import { stripHtml, decodeEntities, mapLimit, findLdProduct, parsePrice } from '../core/util.js';
+import { stripHtml, decodeEntities, mapLimit, findLdProduct, parsePrice, sleep } from '../core/util.js';
 
 // Åpenbare ikke-kosttilskudd i URL-en hoppes over for å spare forespørsler.
 const SKIP_SLUG = /t-?skjorte|tee-|shirt|hoodie|tights|shorts|leggings|bukse|singlet|tank|topp|bh-|sports-?bra|jakke|sokker|caps|lue|hanske|belte|straps|wraps|knee|sleeve|bag|sekk|flaske|shaker|manual|kettlebell|vektskive|stang|benk|matte|band|rulle|roller|sko-|gavekort|hoppetau/i;
@@ -80,10 +80,20 @@ export async function scan(shop, ctx) {
   const xml = await ctx.text(`${shop.url}/sitemap.xml`);
   const urls = [...new Set([...(xml || '').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => decodeEntities(m[1])).filter((u) => /\/products\//.test(u) && !SKIP_SLUG.test(u)))];
   ctx.log(`${shop.id}: ${urls.length} produktsider`);
-  const out = await mapLimit(urls, 6, async (u) => {
+  const fetchPage = async (u) => {
     const html = await ctx.text(u);
     return html ? parseProductPage(shop, u, html) : null;
-  });
+  };
+  const out = await mapLimit(urls, 6, fetchPage);
+  // Mystore svarer av og til med tomme/avkortede sider under høy trafikk: prøv dem igjen, roligere
+  for (let round = 1; round <= 2; round++) {
+    const missing = urls.map((u, i) => (out[i] ? null : i)).filter((i) => i !== null);
+    if (!missing.length) break;
+    ctx.log(`${shop.id}: prøver ${missing.length} sider på nytt (runde ${round})`);
+    await sleep(10000 * round);
+    const again = await mapLimit(missing, 2, (i) => fetchPage(urls[i]));
+    missing.forEach((i, k) => (out[i] = again[k]));
+  }
   return out.filter(Boolean);
 }
 

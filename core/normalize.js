@@ -346,8 +346,12 @@ export function normalize(raw) {
     let pu = null;
     if (cls.cat === 'barer' || cls.cat === 'drikke') {
       const unitW = cnt?.count && grams ? grams / cnt.count : grams;
-      pu = proteinPerUnit(raw.text, raw.name);
-      if (!pu && pp && unitW) pu = Math.round(((pp * unitW) / 100) * 10) / 10;
+      // Næringstabellen (per 100 g × vekt) er sikrest; tekst som «29 g protein» kan gjelde per 100 g
+      if (pp && unitW) pu = Math.round(((pp * unitW) / 100) * 10) / 10;
+      else {
+        pu = proteinPerUnit(raw.text, raw.name);
+        if (pu && unitW && pu > unitW * 0.6) pu = null;
+      }
     }
     const ag = cls.cat === 'kreatin' ? creatineGrams(raw, sub, grams, cnt?.count) : null;
     const dd = cls.cat === 'vitaminer' ? dailyDoses(raw, cnt?.count) : null;
