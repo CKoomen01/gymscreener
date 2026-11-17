@@ -18,7 +18,7 @@ Sammenligner priser på kosttilskudd (proteinpulver, kreatin, pre-workout, amino
 | Mappe | Innhold |
 |---|---|
 | `core/` | Butikkvilkår, normalisering (kategori, vekt, protein, smak), prisberegning, rangering og handlekurv-optimalisering |
-| `scrapers/` | Én skraper per plattform: WooCommerce, Shopify, Salesforce (Gymgrossisten/Proteinfabrikken), Shopware (Bodylab), Mystore, Magento (Sunkost), XXL og Life |
+| `scrapers/` | Én skraper per plattform: WooCommerce, Shopify, Salesforce (Gymgrossisten/Proteinfabrikken), Shopware (Bodylab), Mystore, Sunkost (WooCommerce via produktsider), XXL og Life |
 | `src/` | Nettsiden (React + Vite) |
 | `worker/` | Cloudflare Worker-proxy for live-oppdatering |
 | `tests/` | Enhetstester (`npm test`) |
