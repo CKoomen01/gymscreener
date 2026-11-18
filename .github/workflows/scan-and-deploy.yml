@@ -25,7 +25,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 45
     env:
       PREV_DATA_URL: https://ckoomen01.github.io/gymscreener/data/products.json
     steps:

@@ -10,12 +10,16 @@ import { shopWithId, scraperFor, scanPromos } from '../scrapers/index.js';
 
 const OUT = new URL('../public/data/products.json', import.meta.url);
 const PREV_URL = process.env.PREV_DATA_URL; // forrige publiserte data (brukes i Actions)
+// En butikk som henger, får ikke stoppe hele skannet: etter dette faller den tilbake til forrige skann
+const SHOP_TIMEOUT_MS = 15 * 60 * 1000;
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36 Gymscreener/1.0 (prissammenligning)';
 
 function makeCtx(shopId) {
   let requests = 0;
+  const deadline = Date.now() + SHOP_TIMEOUT_MS;
   async function req(url, opts = {}) {
     for (let attempt = 0; attempt < 3; attempt++) {
+      if (Date.now() > deadline) return null; // tiden er ute: resten av kallene avsluttes raskt
       requests++;
       try {
         const res = await fetch(url, {
@@ -85,7 +89,11 @@ async function main() {
     let items = [];
     let error = null;
     try {
-      const raws = await scraperFor(id).scan(shop, ctx);
+      let timer;
+      const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`Tidsgrense på ${SHOP_TIMEOUT_MS / 60000} min nådd`)), SHOP_TIMEOUT_MS);
+      });
+      const raws = await Promise.race([scraperFor(id).scan(shop, ctx), timeout]).finally(() => clearTimeout(timer));
       for (const r of raws) items.push(...normalize(r));
     } catch (e) {
       error = String(e?.stack || e);
@@ -157,7 +165,7 @@ async function main() {
   console.log(`Ferdig: ${products.length} produkter fra ${Object.keys(shops).length} butikker på ${data.seconds}s`);
 }
 
-main().catch((e) => {
+main().then(() => process.exit(0)).catch((e) => {
   console.error(e);
   process.exit(1);
 });

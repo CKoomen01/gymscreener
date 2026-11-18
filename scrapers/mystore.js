@@ -80,18 +80,22 @@ export async function scan(shop, ctx) {
   const xml = await ctx.text(`${shop.url}/sitemap.xml`);
   const urls = [...new Set([...(xml || '').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => decodeEntities(m[1])).filter((u) => /\/products\//.test(u) && !SKIP_SLUG.test(u)))];
   ctx.log(`${shop.id}: ${urls.length} produktsider`);
+  const { concurrency = 6, delayMs = 0 } = shop.scan || {};
   const fetchPage = async (u) => {
+    if (delayMs) await sleep(delayMs);
     const html = await ctx.text(u);
     return html ? parseProductPage(shop, u, html) : null;
   };
-  const out = await mapLimit(urls, 6, fetchPage);
-  // Mystore svarer av og til med tomme/avkortede sider under høy trafikk: prøv dem igjen, roligere
-  for (let round = 1; round <= 2; round++) {
+  const out = await mapLimit(urls, concurrency, fetchPage);
+  // Mystore svarer av og til med tomme/avkortede sider under høy trafikk: prøv dem igjen, roligere,
+  // men høyst 4 minutter, siden noen butikker slutter å svare helt
+  const retryUntil = Date.now() + 4 * 60 * 1000;
+  for (let round = 1; round <= 2 && Date.now() < retryUntil; round++) {
     const missing = urls.map((u, i) => (out[i] ? null : i)).filter((i) => i !== null);
     if (!missing.length) break;
     ctx.log(`${shop.id}: prøver ${missing.length} sider på nytt (runde ${round})`);
     await sleep(10000 * round);
-    const again = await mapLimit(missing, 2, (i) => fetchPage(urls[i]));
+    const again = await mapLimit(missing, 2, (i) => (Date.now() < retryUntil ? fetchPage(urls[i]) : null));
     missing.forEach((i, k) => (out[i] = again[k]));
   }
   return out.filter(Boolean);
