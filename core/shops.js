@@ -94,7 +94,6 @@ export const SHOPS = {
     name: 'Extreme Fitness',
     url: 'https://www.extremefitness.no',
     platform: 'mystore',
-    scan: { concurrency: 2, delayMs: 600 }, // blokkerer midlertidig ved mange samtidige kall
     shipsFrom: 'Norge (Trondheim)',
     shipping: { free: null, tiers: [[0, 124], [999, 69]], cheapestLabel: 'PostNord hentested/pakkeautomat', homeLabel: 'Ingen hjemlevering' },
     membership: null,

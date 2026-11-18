@@ -14,21 +14,24 @@ const PREV_URL = process.env.PREV_DATA_URL; // forrige publiserte data (brukes i
 const SHOP_TIMEOUT_MS = 15 * 60 * 1000;
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36 Gymscreener/1.0 (prissammenligning)';
 
-function makeCtx(shopId) {
+function makeCtx(shopId, previous, crawl) {
   let requests = 0;
+  let lastStatus = null;
   const deadline = Date.now() + SHOP_TIMEOUT_MS;
   async function req(url, opts = {}) {
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < (opts.attempts || 3); attempt++) {
       if (Date.now() > deadline) return null; // tiden er ute: resten av kallene avsluttes raskt
       requests++;
+      lastStatus = 0;
       try {
         const res = await fetch(url, {
           method: opts.method || 'GET',
           headers: { 'User-Agent': UA, 'Accept-Language': 'nb-NO,nb;q=0.9', ...(opts.headers || {}) },
           body: opts.body,
           redirect: 'follow',
-          signal: AbortSignal.timeout(45000),
+          signal: AbortSignal.timeout(opts.timeoutMs || 45000),
         });
+        lastStatus = res.status;
         if (res.status === 429 || res.status >= 500) {
           await sleep(4000 * (attempt + 1));
           continue;
@@ -56,6 +59,12 @@ function makeCtx(shopId) {
     get requests() {
       return requests;
     },
+    // HTTP-status for siste kall (0 = ingen svar); skiller «finnes ikke» fra blokkering
+    get lastStatus() {
+      return lastStatus;
+    },
+    previous, // butikkens produkter fra forrige skann
+    crawl, // skrapertilstand fra forrige skann (Mystore: hva som er hentet når)
   };
 }
 
@@ -84,17 +93,27 @@ async function main() {
 
   await mapLimit(only, 5, async (id) => {
     const shop = shopWithId(id);
-    const ctx = makeCtx(id);
+    const prevItems = prev?.products?.filter((p) => p.s === id) || [];
+    const ctx = makeCtx(id, prevItems, prev?.shops?.[id]?.crawl || null);
     const t0 = Date.now();
     let items = [];
     let error = null;
+    let crawl = null;
+    let kept = 0;
     try {
       let timer;
       const timeout = new Promise((_, reject) => {
         timer = setTimeout(() => reject(new Error(`Tidsgrense på ${SHOP_TIMEOUT_MS / 60000} min nådd`)), SHOP_TIMEOUT_MS);
       });
-      const raws = await Promise.race([scraperFor(id).scan(shop, ctx), timeout]).finally(() => clearTimeout(timer));
+      const res = await Promise.race([scraperFor(id).scan(shop, ctx), timeout]).finally(() => clearTimeout(timer));
+      // Skrapere kan returnere { raws, keep, crawl } når de bare rekker deler av butikken per skann
+      const raws = Array.isArray(res) ? res : res.raws;
       for (const r of raws) items.push(...normalize(r));
+      if (!Array.isArray(res)) {
+        items.push(...res.keep);
+        kept = res.keep.length;
+        crawl = res.crawl;
+      }
     } catch (e) {
       error = String(e?.stack || e);
     }
@@ -104,7 +123,6 @@ async function main() {
     } catch {
       promos = null;
     }
-    const prevItems = prev?.products?.filter((p) => p.s === id) || [];
     let status = 'ok';
     // Faller tilbake til forrige skann hvis noe gikk galt eller resultatet ser ufullstendig ut
     if (error || items.length === 0 || (prevItems.length > 20 && items.length < prevItems.length * 0.4)) {
@@ -119,6 +137,8 @@ async function main() {
       scannedAt: status === 'ok' ? new Date().toISOString() : prev?.shops?.[id]?.scannedAt || null,
       promos: promos || prev?.shops?.[id]?.promos || null,
       requests: ctx.requests,
+      kept,
+      crawl: crawl || prev?.shops?.[id]?.crawl || null,
       seconds: Math.round((Date.now() - t0) / 1000),
     };
     console.log(`[${id}] ${status}: ${items.length} produkter, ${ctx.requests} kall, ${shops[id].seconds}s${error ? ' FEIL: ' + error.split('\n')[0] : ''}`);

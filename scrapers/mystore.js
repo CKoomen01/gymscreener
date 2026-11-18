@@ -1,5 +1,6 @@
 // Mystore (Extreme Fitness, Hardcore Dealer): produkter fra sitemap, data fra produktsiden.
-import { stripHtml, decodeEntities, mapLimit, findLdProduct, parsePrice, sleep } from '../core/util.js';
+import { stripHtml, decodeEntities, findLdProduct, parsePrice, sleep } from '../core/util.js';
+import { normalize } from '../core/normalize.js';
 
 // Åpenbare ikke-kosttilskudd i URL-en hoppes over for å spare forespørsler.
 const SKIP_SLUG = /t-?skjorte|tee-|shirt|hoodie|tights|shorts|leggings|bukse|singlet|tank|topp|bh-|sports-?bra|jakke|sokker|caps|lue|hanske|belte|straps|wraps|knee|sleeve|bag|sekk|flaske|shaker|manual|kettlebell|vektskive|stang|benk|matte|band|rulle|roller|sko-|gavekort|hoppetau/i;
@@ -76,29 +77,63 @@ export function parseProductPage(shop, url, html) {
   };
 }
 
+// Mystore-butikkene ber om «Crawl-delay: 5» i robots.txt og blokkerer IP-en i timevis ved flere kall.
+// Derfor hentes én side hvert 5. sekund innenfor et tidsbudsjett. Kjente kosttilskudd hentes først,
+// sider som ikke er kosttilskudd huskes og sjekkes bare ukentlig, og sider vi ikke rakk beholder forrige skann.
+const CRAWL_DELAY_MS = 5000;
+const BUDGET_MS = 11 * 60 * 1000;
+const RECHECK_SKIP_MS = 7 * 24 * 3600 * 1000;
+const MAX_FAILS_IN_ROW = 3;
+
 export async function scan(shop, ctx) {
   const xml = await ctx.text(`${shop.url}/sitemap.xml`);
   const urls = [...new Set([...(xml || '').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => decodeEntities(m[1])).filter((u) => /\/products\//.test(u) && !SKIP_SLUG.test(u)))];
-  ctx.log(`${shop.id}: ${urls.length} produktsider`);
-  const { concurrency = 6, delayMs = 0 } = shop.scan || {};
-  const fetchPage = async (u) => {
-    if (delayMs) await sleep(delayMs);
-    const html = await ctx.text(u);
-    return html ? parseProductPage(shop, u, html) : null;
-  };
-  const out = await mapLimit(urls, concurrency, fetchPage);
-  // Mystore svarer av og til med tomme/avkortede sider under høy trafikk: prøv dem igjen, roligere,
-  // men høyst 4 minutter, siden noen butikker slutter å svare helt
-  const retryUntil = Date.now() + 4 * 60 * 1000;
-  for (let round = 1; round <= 2 && Date.now() < retryUntil; round++) {
-    const missing = urls.map((u, i) => (out[i] ? null : i)).filter((i) => i !== null);
-    if (!missing.length) break;
-    ctx.log(`${shop.id}: prøver ${missing.length} sider på nytt (runde ${round})`);
-    await sleep(10000 * round);
-    const again = await mapLimit(missing, 2, (i) => (Date.now() < retryUntil ? fetchPage(urls[i]) : null));
-    missing.forEach((i, k) => (out[i] = again[k]));
+  if (!urls.length) return [];
+  const prevByUrl = new Map();
+  for (const p of ctx.previous || []) (prevByUrl.get(p.u) || prevByUrl.set(p.u, []).get(p.u)).push(p);
+  const old = ctx.crawl || {};
+  const now = Date.now();
+  const crawl = { fetched: {}, skip: {} };
+  for (const u of urls) {
+    if (old.fetched?.[u]) crawl.fetched[u] = old.fetched[u];
+    if (old.skip?.[u] && now - Date.parse(old.skip[u]) < RECHECK_SKIP_MS) crawl.skip[u] = old.skip[u];
   }
-  return out.filter(Boolean);
+  // Rekkefølge: eldst hentet først; kjente kosttilskudd foran ukjente sider ved likt tidspunkt
+  const queue = urls
+    .filter((u) => !crawl.skip[u])
+    .sort((a, b) => (Date.parse(crawl.fetched[a] || 0) || 0) - (Date.parse(crawl.fetched[b] || 0) || 0) || (prevByUrl.has(b) ? 1 : 0) - (prevByUrl.has(a) ? 1 : 0));
+  ctx.log(`${shop.id}: ${urls.length} produktsider, ${Object.keys(crawl.skip).length} kjente ikke-kosttilskudd hoppes over, ${queue.length} i kø`);
+
+  const raws = [];
+  const done = new Set();
+  let fails = 0;
+  for (const u of queue) {
+    if (Date.now() - now > BUDGET_MS) break;
+    if (done.size) await sleep(shop.crawlDelayMs ?? CRAWL_DELAY_MS);
+    const html = await ctx.text(u, { attempts: 1, timeoutMs: 30000 }); // nytt forsøk kommer i neste skann
+    const status = ctx.lastStatus;
+    const raw = html ? parseProductPage(shop, u, html) : null;
+    if (!html && status !== 404 && status !== 410) {
+      if (++fails >= MAX_FAILS_IN_ROW) {
+        ctx.log(`${shop.id}: ${fails} feil på rad (status ${status}) – stopper for å ikke belaste butikken`);
+        break;
+      }
+      continue;
+    }
+    fails = 0;
+    done.add(u);
+    if (raw && normalize(raw).length) {
+      raws.push(raw);
+      crawl.fetched[u] = new Date().toISOString();
+    } else {
+      crawl.skip[u] = new Date().toISOString();
+      delete crawl.fetched[u];
+    }
+  }
+  // Kosttilskudd vi ikke rakk denne gangen: behold forrige skann (bare hvis siden fortsatt finnes)
+  const keep = urls.filter((u) => !done.has(u) && !crawl.skip[u]).flatMap((u) => prevByUrl.get(u) || []);
+  ctx.log(`${shop.id}: ${done.size} sider hentet, ${raws.length} kosttilskudd oppdatert, ${keep.length} beholdt fra forrige skann`);
+  return { raws, keep, crawl };
 }
 
 export async function refresh(shop, raw, ctx) {
