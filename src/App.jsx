@@ -7,12 +7,14 @@ import { timeAgo } from './format.js';
 import Onboarding from './components/Onboarding.jsx';
 import RankingView from './components/RankingView.jsx';
 import SameProductView from './components/SameProductView.jsx';
+import AnalysisView from './components/AnalysisView.jsx';
 import CartView from './components/CartView.jsx';
 import ShopsView from './components/ShopsView.jsx';
 
 const TABS = [
   ['rangering', 'Billigst per kategori'],
   ['produkt', 'Samme produkt'],
+  ['utvikling', 'Prisutvikling'],
   ['handlekurv', 'Handlekurv'],
   ['butikker', 'Butikker og innstillinger'],
 ];
@@ -127,6 +129,7 @@ export default function App() {
         {!data && !error && <div className="notice">Laster priser…</div>}
         {data && tab === 'rangering' && <RankingView products={products} settings={settings} promos={promos} live={liveInfo} history={history} />}
         {data && tab === 'produkt' && <SameProductView products={products} settings={settings} promos={promos} live={liveInfo} history={history} />}
+        {data && tab === 'utvikling' && <AnalysisView products={data.products} history={history} />}
         {data && tab === 'handlekurv' && <CartView products={products} settings={settings} promos={promos} live={liveInfo} />}
         {data && tab === 'butikker' && <ShopsView data={data} settings={settings} setSettings={setSettings} openSetup={() => setShowSetup(true)} />}
       </main>

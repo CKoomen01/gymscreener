@@ -129,6 +129,18 @@ export function amountPerPackage(prod, unit) {
 
 export const UNIT_LABEL = { kg: 'kr/kg', kgProtein: 'kr/kg protein', kgActive: 'kr/kg kreatin', stk: 'kr/stk', gProtein: 'kr/100 g protein', doser: 'kr/dagsdose' };
 
+// Enheter som gir mening per kategori (første = standard i rangeringen)
+export const CAT_UNITS = {
+  protein: ['kgProtein', 'kg'],
+  kreatin: ['kgActive', 'kg'],
+  pwo: ['kg'],
+  aminosyrer: ['kg'],
+  gainer: ['kg'],
+  barer: ['stk', 'gProtein'],
+  drikke: ['stk', 'gProtein'],
+  vitaminer: ['doser', 'stk'],
+};
+
 export function defaultUnit(cat) {
   return { protein: 'kgProtein', kreatin: 'kgActive', barer: 'stk', drikke: 'stk', vitaminer: 'doser' }[cat] || 'kg';
 }

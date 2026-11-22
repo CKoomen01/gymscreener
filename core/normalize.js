@@ -24,7 +24,7 @@ export const SUBCATEGORIES = {
 };
 
 export const FLAVOR_GROUPS = [
-  ['Sjokolade', /sjokolade|chocolate|choco|kakao|cocoa|brownie|nougat|mørk sjokk/i],
+  ['Sjokolade', /sjokolade|chocolate|choco|\bchoc\b|kakao|cocoa|brownie|nougat|mørk sjokk/i],
   ['Vanilje', /vanilj|vanilla|vanille/i],
   ['Jordbær', /jordb(æ|ae)r|strawberr/i],
   ['Bringebær', /bringeb(æ|ae)r|raspberr|rasp\b/i],
@@ -121,7 +121,9 @@ export function classify(raw) {
   // Merker som bare lager proteinbarer, der navnet ofte bare er smaken ("Barebells Salty Peanut")
   if (/barebells|swebar|fulfil|misfits|built bar/.test(name) && !vol && !/pulver|powder|spread/.test(name)) return { cat: 'barer', sub: 'protein' };
   if (/gainer|mass(?!asje)|weight ?gain|vekt(ø|o)kning/.test(all) && !/kreatin|creatine/.test(name)) return { cat: 'gainer', sub: 'gainer' };
-  if (/pre[\s-]?workout|\bpwo\b|\bpre\b|\bpump\b|\bc4\b|n\.?o\.?[\s-]?xplode|preworkout/.test(name) || (/pwo|pre-?workout/.test(cat) && !/kreatin|creatine|bcaa|eaa|protein|whey|kollagen|collagen/.test(name))) {
+  // «C4 Whey Protein» er proteinpulver fra et PWO-merke, ikke pre-workout
+  const pwoBrandOnly = /\bc4\b/.test(name) && /whey|protein ?pulver|protein powder|isolate/.test(name) && !/pre[\s-]?workout|\bpwo\b/.test(name);
+  if ((!pwoBrandOnly && /pre[\s-]?workout|\bpwo\b|\bpre\b|\bpump\b|\bc4\b|n\.?o\.?[\s-]?xplode|preworkout/.test(name)) || (/pwo|pre-?workout/.test(cat) && !/kreatin|creatine|bcaa|eaa|protein|whey|kollagen|collagen/.test(name))) {
     const sub = /koffeinfri|caffeine[\s-]?free|stim[\s-]?free|uten koffein|non[\s-]?stim|pump/.test(all) ? 'koffeinfri' : /koffein|caffeine|stim/.test(all) ? 'koffein' : 'ukjent';
     return { cat: 'pwo', sub };
   }

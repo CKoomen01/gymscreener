@@ -1,23 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CATEGORIES, SUBCATEGORIES, FLAVOR_GROUPS } from '../../core/normalize.js';
 import { SHOPS, SHOP_IDS } from '../../core/shops.js';
-import { UNIT_LABEL, defaultUnit } from '../../core/pricing.js';
+import { UNIT_LABEL, CAT_UNITS, defaultUnit } from '../../core/pricing.js';
 import { rankRows, flavorIndex } from '../../core/rank.js';
 import { dayIndex, osloDate, MIN_DAYS_FOR_BADGE } from '../../core/history.js';
 import { useStored } from '../settings.js';
 import { LIVE_TOP_N } from '../config.js';
 import ProductCard from './ProductCard.jsx';
 
-const UNITS = {
-  protein: ['kgProtein', 'kg'],
-  kreatin: ['kgActive', 'kg'],
-  pwo: ['kg'],
-  aminosyrer: ['kg'],
-  gainer: ['kg'],
-  barer: ['stk', 'gProtein'],
-  drikke: ['stk', 'gProtein'],
-  vitaminer: ['doser', 'stk'],
-};
+const UNITS = CAT_UNITS;
 const QTY_LABEL = { kg: 'kg', kgProtein: 'kg rent protein', kgActive: 'kg kreatin', stk: 'stk', gProtein: 'g protein', doser: 'dagsdoser' };
 const GROUPS = [...FLAVOR_GROUPS.map(([n]) => n), 'Annen smak', 'Ikke oppgitt'];
 

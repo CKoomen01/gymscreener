@@ -15,6 +15,9 @@
   --member: #6d28d9;
   --radius: 12px;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.04);
+  /* Linjefarger per butikk i grafene (validert for fargeblindhet mot lys flate) */
+  --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100;
+  --series-5: #e87ba4; --series-6: #008300; --series-7: #6250d6; --series-8: #e34948;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -34,6 +37,8 @@
     --sale: #fb923c;
     --member: #b794f6;
     --shadow: none;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+    --series-5: #d55181; --series-6: #0ca30c; --series-7: #9085e9; --series-8: #e66767;
     color-scheme: dark;
   }
 }
@@ -209,6 +214,43 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; font-
 
 .foot { color: var(--muted); font-size: 12.5px; text-align: center; margin-top: 28px; }
 
+/* Prisutvikling */
+.bad-text { color: var(--bad); }
+.hist-note { margin: 0 0 10px; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; box-shadow: var(--shadow); }
+.kpi-label { font-size: 12.5px; color: var(--muted); }
+.kpi-value { font-size: 22px; font-weight: 750; letter-spacing: -0.01em; }
+.cat-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.chart-panel { margin-bottom: 12px; min-width: 0; }
+.chart-panel h3 { margin: 0; font-size: 15px; }
+.chart-panel p { margin: 2px 0 6px; }
+.chart { position: relative; width: 100%; min-width: 0; }
+.chart svg { display: block; touch-action: pan-y; outline: none; }
+.chart svg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .axis { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.chart .ref { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 4; }
+.chart .series { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .pt.ring { stroke: var(--surface); stroke-width: 2; }
+.chart .cross { stroke: var(--muted); stroke-width: 1; }
+.chart-empty { padding: 16px 0; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; font-size: 12.5px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12); z-index: 2; white-space: nowrap; }
+.tip-date { color: var(--muted); margin-bottom: 2px; }
+.tip-row { display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+.key { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; flex: none; }
+.key.dashed { background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 7px); }
+.legend { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 0; margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
+.legend li { display: flex; align-items: center; gap: 6px; }
+.acards { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.acard { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; box-shadow: var(--shadow); min-width: 0; }
+.acard header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 6px; }
+.acard h3 { margin: 0; font-size: 15.5px; }
+.acard-now { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+.offers.stats td, .offers.stats th { white-space: nowrap; }
+.offers.stats td:first-child { white-space: normal; }
+.offers.stats .badge { display: inline-block; margin: 3px 0 0 20px; }
+
 .filter-toggle { display: none; margin: 0 0 10px; }
 a.buy { white-space: nowrap; }
 
@@ -229,4 +271,11 @@ a.buy { white-space: nowrap; }
   .offers th.num { white-space: normal; }
   .offers td:first-child { max-width: 92px; overflow-wrap: break-word; }
   .shop-grid { grid-template-columns: 1fr; }
+  .tabs { flex-wrap: wrap; gap: 0 2px; }
+  .tabs button { padding: 8px 10px; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cat-charts { grid-template-columns: 1fr; }
+  .acard header { flex-direction: column; }
+  .acard-now { align-items: flex-start; text-align: left; }
+  .offers.stats th:nth-child(5), .offers.stats td:nth-child(5) { display: table-cell; }
 }

@@ -71,12 +71,10 @@ export function dailyPrices(history, key, date = osloDate(), windowDays = WINDOW
   return out;
 }
 
-// Statistikk for en nåpris mot historikken. Nåprisen telles med som dagens verdi.
-export function priceStats(history, key, current, date = osloDate()) {
-  const pts = dailyPrices(history, key, date);
-  if (!pts.length || !(current > 0)) return null;
-  const prices = pts.map((p) => p.price);
+// Snitt, spenn, kvartiler og nivå (billig/normal/dyr) for daglige priser mot en nåpris
+export function statsFromPrices(prices, current) {
   const n = prices.length;
+  if (!n || !(current > 0)) return null;
   const mean = prices.reduce((a, b) => a + b, 0) / n;
   const min = Math.min(...prices);
   const max = Math.max(...prices);
@@ -100,7 +98,22 @@ export function priceStats(history, key, current, date = osloDate()) {
     level,
     vsMean: (current - mean) / mean, // negativ = under snittet
     isLowest: current <= min,
-    points: pts,
-    startDate: new Date(Date.parse(`${history.start}T00:00:00Z`) + pts[0].day * DAY).toISOString().slice(0, 10),
   };
+}
+
+// Statistikk for en nåpris mot historikken. Nåprisen telles med som dagens verdi.
+export function priceStats(history, key, current, date = osloDate()) {
+  const pts = dailyPrices(history, key, date);
+  const st = statsFromPrices(pts.map((p) => p.price), current);
+  if (!st) return null;
+  return {
+    ...st,
+    points: pts,
+    startDate: dateOf(history, pts[0].day),
+  };
+}
+
+// Dato (YYYY-MM-DD) for en dagindeks i historikken
+export function dateOf(history, day) {
+  return new Date(Date.parse(`${history.start}T00:00:00Z`) + day * DAY).toISOString().slice(0, 10);
 }

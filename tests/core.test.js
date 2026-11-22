@@ -35,6 +35,10 @@ test('parseCount', () => {
 
 test('smaksgrupper', () => {
   assert.deepEqual(flavorGroups('Ultimate Chocolate'), ['Sjokolade']);
+  assert.deepEqual(flavorGroups('Double Chocolate'), ['Sjokolade']);
+  assert.ok(flavorGroups('White Choc Pistachio').includes('Sjokolade'));
+  assert.deepEqual(flavorGroups('Choc Mint'), ['Sjokolade']);
+  assert.ok(flavorGroups('Vanilla Milkshake').includes('Vanilje'));
   assert.deepEqual(flavorGroups('Raspberry'), ['Bringebær']);
   assert.ok(flavorGroups('Cookies & Cream').includes('Kake / cookie'));
   assert.deepEqual(flavorGroups('Neutral'), ['Naturell / uten smak']);
@@ -46,6 +50,8 @@ test('smaksgrupper', () => {
 test('klassifisering', () => {
   assert.deepEqual(classify({ name: 'Whey Protein Isolate Grass Fed - 800g', shopCategory: 'Protein' }), { cat: 'protein', sub: 'isolat' });
   assert.equal(classify({ name: 'Creatine Monohydrate 500 g', shopCategory: '' }).cat, 'kreatin');
+  assert.equal(classify({ name: "C4 whey protein hershey's milk chocolate 1.61 kg", shopCategory: 'Protein' }).cat, 'protein');
+  assert.equal(classify({ name: 'C4 Original PWO 390 g', shopCategory: '' }).cat, 'pwo');
   assert.equal(classify({ name: 'Creatine Creapure 150 caps', shopCategory: '' }).sub, 'kapsler');
   assert.equal(classify({ name: 'Barebells Protein Bar Salty Peanut', shopCategory: '' }).cat, 'barer');
   assert.equal(classify({ name: 'Shaker 700 ml', shopCategory: 'Tilbehør' }), null);
